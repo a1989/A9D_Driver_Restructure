@@ -1,23 +1,24 @@
 #include "MotionControl.h"
 #include "stm32f1xx_hal.h"
 
-static void SetAxisIndex(const uint8_t iBoardID, AxisEnum *iAxisInex)
+//分布式控制时, 根据板ID确定当前控制的是哪个轴
+static void SetAxisIndex(const uint8_t iBoardID, AxisEnum *iAxisIndex)
 {
 		if(0xA1 == iBoardID || 0xB1 == iBoardID)
 		{
-				*iAxisInex = X_AXIS;
+				*iAxisIndex = X_AXIS;
 		}
 		else if(0xA2 == iBoardID || 0xB2 == iBoardID)
 		{
-				*iAxisInex = Y_AXIS;
+				*iAxisIndex = Y_AXIS;
 		}
 		else if(0xA3 == iBoardID || 0xB3 == iBoardID)
 		{
-				*iAxisInex = Z_AXIS;
+				*iAxisIndex = Z_AXIS;
 		}
 		else
 		{
-				*iAxisInex = UNKNOWN_AXIS;
+				*iAxisIndex = UNKNOWN_AXIS;
 		}
 }
 
@@ -34,14 +35,15 @@ static void ResetMotionBlock(MotionManageBlock *structBlock)
 		structBlock->m_pSetAxisIndex = SetAxisIndex;
 }
 
-void MotionBlockInit(MotionManageBlock *structBlock, MotionBlockMsg *iMsg)
+//运动控制块初始化
+bool MotionBlockInit(MotionManageBlock *structBlock, MotionBlockMsg *iMsg)
 {
 		*iMsg = 0;
 	
 		if(null == structBlock)
 		{
 				iMsg |= 0x1;
-				return;
+				return false;
 		}		
 		
 		ResetMotionBlock(structBlock);
@@ -49,7 +51,7 @@ void MotionBlockInit(MotionManageBlock *structBlock, MotionBlockMsg *iMsg)
 		if(null == structBlock->m_pSetAxisIndex)
 		{
 				iMsg |= 0x2;
-				return;
+				return false;
 		}
 		
 		structBlock->m_pSetAxisIndex(, structBlock->iAxisIndex);
@@ -58,10 +60,10 @@ void MotionBlockInit(MotionManageBlock *structBlock, MotionBlockMsg *iMsg)
 		if(UNKNOWN_AXIS == structBlock->iAxisIndex)
 		{
 				iMsg |= 0x4;
-				return;
+				return false;
 		}
 		
-		
+		return true;
 }
 
 void ProcessBlockData()

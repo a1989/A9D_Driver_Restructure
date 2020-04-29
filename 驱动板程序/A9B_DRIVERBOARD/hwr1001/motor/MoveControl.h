@@ -9,11 +9,17 @@ typedef uint8_t MoveBlockMsg;
 
 typedef struct
 {
+		//电机忙标志
 		bool bBusy;
+		//到达位置标志
 		bool bDistanceArrived;
-		uint32_t iMotorTotalSteps[AXIS_NUM];
+		//每个轴的运动距离(mm)
+		uint32_t fMoveDistance[AXIS_NUM];
+		//每个轴的电机运动步数(steps)
+		uint32_t iMotorSteps[AXIS_NUM];
+		//每个轴的电机运动速度(steps/s)
 		uint32_t iMotorStepsPerSecond[AXIS_NUM];
-		uint32_t iEncoderTotalSteps[AXIS_NUM];
+		uint32_t iEncoderSteps[AXIS_NUM];
 		uint32_t iEncoderStepsPerSecond[AXIS_NUM];
 		double dAcceleration;
 		double dDeceleration;

@@ -10,7 +10,14 @@ MotionManageBlock StructMotionBlock;
 //初始化所用到的数据结构
 void DataStructureInit(void)
 {
-		MotionBlockInit(&StructMotionBlock);
+		
+		MotionBlockMsg iMsg;
+		if(!MotionBlockInit(&StructMotionBlock, &iMsg))
+		{
+			//0x01:运动控制块变量未分配内存
+			//0x02:轴编号函数指针为空
+			//0x04:轴号错误
+		}
 }
 
 void DiverSystemInit(void)

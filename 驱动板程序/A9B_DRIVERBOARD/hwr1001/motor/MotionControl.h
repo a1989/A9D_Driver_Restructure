@@ -4,7 +4,8 @@
 #include <stdbool.h>
 #include "includes.h"
 #include "DriverBoardConfig.h"
-#include "MoveBlock.h"
+#include "MoveControl.h"
+
 #define QUEUELENGTH	8
 
 typedef uint8_t AxisIndex;
