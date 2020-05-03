@@ -541,6 +541,16 @@
               <FileType>1</FileType>
               <FilePath>..\hwr1001\motor\MotorControl.c</FilePath>
             </File>
+            <File>
+              <FileName>Communication.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\hwr1001\Communication.c</FilePath>
+            </File>
+            <File>
+              <FileName>DriverStorage.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\hwr1001\DriverStorage.c</FilePath>
+            </File>
           </Files>
         </Group>
         <Group>

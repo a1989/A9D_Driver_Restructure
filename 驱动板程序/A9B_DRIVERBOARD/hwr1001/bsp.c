@@ -24,3 +24,24 @@ void BSP_Initializes (void)
 		printf ("\r\n hwrobot steper motor driver board bsp init is ok !");
 	}
 }
+
+bool BSP_Init(void)
+{
+		
+}
+
+void ReadBoardParams(void)
+{
+		
+}
+
+void TIM_Init(void)
+{
+		//需要用到TIM1~TIM4
+		//分别用于OC输出控制电机,编码器计数溢出时判断方向,事件处理
+		//根据不同硬件在tim.c中修改配置
+		MX_TIM1_Init();
+		MX_TIM2_Init();
+		MX_TIM3_Init();
+		MX_TIM4_Init();
+}

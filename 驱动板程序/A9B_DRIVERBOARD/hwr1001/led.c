@@ -54,3 +54,8 @@ void Signal_LED_Control (void)
     	driver_error_flag = 0;
     }
 }
+
+void LED_ErrorInstruction(void)
+{
+	
+}

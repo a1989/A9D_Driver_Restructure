@@ -23,6 +23,7 @@ typedef struct
 		void ();
 }MotionManageBlock;
 
-void MotionBlockInit(MotionManageBlock *structBlock, MotionBlockMsg *iMsg);
+bool MotionBlockInit(MotionManageBlock *structBlock, MotionBlockMsg *iMsg);
+void MotionControlInit(void);
 
 #endif

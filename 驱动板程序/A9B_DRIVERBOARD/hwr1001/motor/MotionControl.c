@@ -40,17 +40,17 @@ bool MotionBlockInit(MotionManageBlock *structBlock, MotionBlockMsg *iMsg)
 {
 		*iMsg = 0;
 	
-		if(null == structBlock)
+		if(NULL == structBlock)
 		{
-				iMsg |= 0x1;
+				*iMsg |= 0x1;
 				return false;
 		}		
 		
 		ResetMotionBlock(structBlock);
 		
-		if(null == structBlock->m_pSetAxisIndex)
+		if(NULL == structBlock->m_pSetAxisIndex)
 		{
-				iMsg |= 0x2;
+				*iMsg |= 0x2;
 				return false;
 		}
 		
@@ -59,7 +59,7 @@ bool MotionBlockInit(MotionManageBlock *structBlock, MotionBlockMsg *iMsg)
 		//如果是未知轴,则返回错误
 		if(UNKNOWN_AXIS == structBlock->iAxisIndex)
 		{
-				iMsg |= 0x4;
+				*iMsg |= 0x4;
 				return false;
 		}
 		
@@ -124,4 +124,7 @@ static float GetCurrentLocation(void)
 
 }
 
-
+void MotionControlInit(void)
+{
+		#if 
+}

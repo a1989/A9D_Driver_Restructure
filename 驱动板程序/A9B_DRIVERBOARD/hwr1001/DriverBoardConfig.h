@@ -2,14 +2,25 @@
 #define __DRIVERBOARDCONFIG_H__
 
 #include <stdbool.h>
+#include <stdio.h>
 
+//分布式
 #define DISTRIBUTE	0
+//联动式
 #define LINKAGE		1
-#define DRIVER_BOARD_MODE	DISTRIBUTE
+#define DRIVER_BOARD_MODE		DISTRIBUTE
 
 #define USE_DRV8711	0
 #define USE_TMC2590	1
-#define MOTOR_DRIVER	USE_DRV8711
+#define MOTOR_DRIVER		USE_DRV8711
+
+#define CHENGDU_DESIGN				1
+#define SHENZHEN_DESIGN_V1		2
+#define HARDWARE_VERSION			CHENGDU_DESIGN
+
+#define USE_AT24C512	0
+#define USE_AT93C66		1
+#define DRIVER_STORAGE		USE_AT24C512
 
 #define AXIS_NUM	3
 
