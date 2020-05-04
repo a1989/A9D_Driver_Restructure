@@ -25,7 +25,13 @@ typedef struct
 		double dDeceleration;
 		double dStartSpeed;
 		double dEndSpeed;
-		
+}MoveNode;
+
+typedef struct
+{
+		MoveNode arrMoveBuffer[MOVE_NODE_NUM];
+		uint8_t iWriteIndex;
+		uint8_t iReadIndex;
 }MoveBlock;
 
 void MoveBlockInit(MoveBlock *structBlock, MoveBlockMsg *iMsg);

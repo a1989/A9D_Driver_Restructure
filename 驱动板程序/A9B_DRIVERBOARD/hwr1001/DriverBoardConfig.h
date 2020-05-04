@@ -43,4 +43,11 @@ typedef enum
 #define Y_MAX_LENGTH	(Y_MAX_POS - Y_MIN_POS)
 #define Z_MAX_LENGTH	(Z_MAX_POS - Z_MIN_POS)
 
+#define RECV_HOST_DATA_SIZE		8
+#define SEND_HOST_DATA_SIZE		8
+#define RECV_BUFFER_SIZE	8
+#define SEND_BUFFER_SIZE	8
+
+#define MOVE_NODE_NUM		8
+
 #endif

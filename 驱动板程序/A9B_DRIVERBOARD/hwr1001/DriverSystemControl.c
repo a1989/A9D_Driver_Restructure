@@ -28,35 +28,79 @@ void DiverSystemInit(void)
 
 void QueryFromHostHandler(void)
 {
+		
 		switch()
 		{
-			case VERSION:
+			//请求版本号
+			case VERSION:				
 				break;
+			//请求细分设置
 			case SUBDIVISION:
 				break;
-			case CURRENT:
+			//请求最大电流
+			case MAX_CURRENT:
 				break;
+			//请求最大行程
 			case MAX_LEN:
 				break;
+			//请求实时位置
 			case REALTIME_LOCATION:
 				break;
+			//请求实时速度
 			case REALTIME_SPEED:
 				break;
+			//请求限位状态
 			case LIMIT_STATUS:
 				break;
 			
 		}
+		
+		SetTransData();
 }
 
 void CommandFromHostHandler(void)
 {
-		
+		switch()
+		{
+			case MOVE:
+				//将运动数据写入运动控制块
+				StructMotionBlock.m_SetMoveData();
+				break;
+			case HOME:
+				StructMotionBlock.m_HomeAxis();
+				break;
+			case BOARD_RESET:
+				break;
+			case EN_TORQUE:
+				StructMotionBlock.m_SetTorque();
+				break;
+			case MOTOR_STOP:
+				StructMotionBlock.m_StopMotor();
+				break;
+			case SET_ID:
+				break;
+			case SET_CURRENT:
+				StructMotionBlock.m_SetCurrent();
+				break;
+			case SET_SUBDIVISION:
+				StructMotionBlock.m_SetSubdivision();
+				break;				
+		}
+}
+
+
+void RecvDataAnalyze()
+{
+		if()
 }
 
 void ProcessData(void)
 {
+		RecvDataAnalyze();
 		switch()
 		{
+			case HEARTBEAT:
+				break;
 			case QUERY:
 				QueryFromHostHandler();
 				break;
@@ -71,7 +115,7 @@ void ProcessData(void)
 void DriverSystemRun(void)
 {
 		//如果收到数据就处理数据
-		if(GetControlData())
+		if(HostDataGet())
 		{
 				ProcessData();
 		}

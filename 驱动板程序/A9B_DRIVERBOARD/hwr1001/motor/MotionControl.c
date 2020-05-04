@@ -126,5 +126,10 @@ static float GetCurrentLocation(void)
 
 void MotionControlInit(void)
 {
-		#if 
+		
+}
+
+void PushMoveData(MoveBlock *Block_t, float fTargetPos, float fSpeed)	
+{
+		
 }

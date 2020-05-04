@@ -25,9 +25,16 @@ void BSP_Initializes (void)
 	}
 }
 
-bool BSP_Init(void)
+void BSP_Init(void)
 {
-		
+		MX_GPIO_Init();
+		MX_DMA_Init();
+		MX_USART1_UART_Init();
+		MX_CAN_Init();
+		MX_I2C2_Init();
+		MX_SPI2_Init();
+		MX_IWDG_Init();
+		MX_IWDG_Init();
 }
 
 void ReadBoardParams(void)

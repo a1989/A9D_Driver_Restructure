@@ -57,5 +57,19 @@ void Signal_LED_Control (void)
 
 void LED_ErrorInstruction(void)
 {
-	
+	//绿灯常亮表示正常工作
+	//绿灯闪烁表示正常工作且收到消息
+	switch()
+	{
+		case NORMAL:
+			break;
+		case COMMUNICATE:
+			break;
+		case SHORT:
+			break;
+		case OPEN:
+			break;
+		case OVERTEMP:
+			break;
+	}
 }

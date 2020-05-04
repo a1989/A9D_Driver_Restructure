@@ -7,8 +7,8 @@ typedef struct
 {
 		uint8_t iDriverSubdivision;
 		uint8_t iDiverCurrent;
-		uint8_t i
-}ReadParams_t;
+		uint8_t iID;
+}BasicParams_t;
 
 typedef struct
 {

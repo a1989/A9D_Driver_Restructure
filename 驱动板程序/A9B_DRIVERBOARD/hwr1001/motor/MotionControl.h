@@ -13,7 +13,7 @@ typedef uint8_t MotionBlockMsg;
 	
 typedef struct
 {
-		MoveBlock arrMoveBlockQueue[QUEUELENGTH];	
+		MoveBlock MoveBlock_t;	
 		//
 		uint8_t iBlockError;
 		uint8_t iQueueIndex;
