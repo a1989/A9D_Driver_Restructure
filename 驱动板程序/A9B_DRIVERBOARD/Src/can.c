@@ -25,25 +25,26 @@
 
 /* USER CODE END 0 */
 
-CAN_HandleTypeDef hcan;
+//CAN_HandleTypeDef hcan;
+CAN_HandleTypeDef g_hCAN1;
 
 /* CAN init function */
 void MX_CAN_Init(void)
 {
 
-  hcan.Instance = CAN1;
-  hcan.Init.Prescaler = 8;
-  hcan.Init.Mode = CAN_MODE_NORMAL;
-  hcan.Init.SJW = CAN_SJW_1TQ;
-  hcan.Init.BS1 = CAN_BS1_5TQ;
-  hcan.Init.BS2 = CAN_BS2_3TQ;
-  hcan.Init.TTCM = DISABLE;
-  hcan.Init.ABOM = DISABLE;
-  hcan.Init.AWUM = DISABLE;
-  hcan.Init.NART = ENABLE;
-  hcan.Init.RFLM = DISABLE;
-  hcan.Init.TXFP = DISABLE;
-  if (HAL_CAN_Init(&hcan) != HAL_OK)
+  g_hCAN1.Instance = CAN1;
+  g_hCAN1.Init.Prescaler = 8;
+  g_hCAN1.Init.Mode = CAN_MODE_NORMAL;
+  g_hCAN1.Init.SJW = CAN_SJW_1TQ;
+  g_hCAN1.Init.BS1 = CAN_BS1_5TQ;
+  g_hCAN1.Init.BS2 = CAN_BS2_3TQ;
+  g_hCAN1.Init.TTCM = DISABLE;
+  g_hCAN1.Init.ABOM = DISABLE;
+  g_hCAN1.Init.AWUM = DISABLE;
+  g_hCAN1.Init.NART = ENABLE;
+  g_hCAN1.Init.RFLM = DISABLE;
+  g_hCAN1.Init.TXFP = DISABLE;
+  if (HAL_CAN_Init(&g_hCAN1) != HAL_OK)
   {
     Error_Handler();
   }
@@ -54,7 +55,7 @@ void HAL_CAN_MspInit(CAN_HandleTypeDef* canHandle)
 {
   GPIO_InitTypeDef GPIO_InitStruct = {0};
 
-  if(canHandle->Instance==CAN1)
+  if(canHandle->Instance == CAN1)
   {
   /* USER CODE BEGIN CAN1_MspInit 0 */
 
@@ -86,7 +87,7 @@ void HAL_CAN_MspInit(CAN_HandleTypeDef* canHandle)
 void HAL_CAN_MspDeInit(CAN_HandleTypeDef* canHandle)
 {
 
-  if(canHandle->Instance==CAN1)
+  if(canHandle->Instance == CAN1)
   {
   /* USER CODE BEGIN CAN1_MspDeInit 0 */
 

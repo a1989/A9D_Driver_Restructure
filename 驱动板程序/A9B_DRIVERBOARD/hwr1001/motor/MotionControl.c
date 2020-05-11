@@ -36,13 +36,11 @@ static void ResetMotionBlock(MotionManageBlock *structBlock)
 }
 
 //运动控制块初始化
-bool MotionBlockInit(MotionManageBlock *structBlock, MotionBlockMsg *iMsg)
+bool MotionBlockInit(MotionManageBlock *structBlock)
 {
-		*iMsg = 0;
-	
 		if(NULL == structBlock)
 		{
-				*iMsg |= 0x1;
+				printf("\r\nfunc:%s:block null pointer", __FUNCTION__);
 				return false;
 		}		
 		
@@ -50,7 +48,7 @@ bool MotionBlockInit(MotionManageBlock *structBlock, MotionBlockMsg *iMsg)
 		
 		if(NULL == structBlock->m_pSetAxisIndex)
 		{
-				*iMsg |= 0x2;
+				printf("\r\nfunc:%s:m_pSetAxisIndex null pointer", __FUNCTION__);
 				return false;
 		}
 		
@@ -59,7 +57,7 @@ bool MotionBlockInit(MotionManageBlock *structBlock, MotionBlockMsg *iMsg)
 		//如果是未知轴,则返回错误
 		if(UNKNOWN_AXIS == structBlock->iAxisIndex)
 		{
-				*iMsg |= 0x4;
+				printf("\r\nfunc:%s:UNKNOWN_AXIS", __FUNCTION__);
 				return false;
 		}
 		

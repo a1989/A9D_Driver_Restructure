@@ -1,21 +1,43 @@
 #include "DriverSystemControl.h"
 #include "MotionControl.h"
 #include "Hardware.h"
+#include "Communication.h"
+#include "Version.h"
+#include "DriverStorage.h"
 
 /*系统功能分为三大部分:通信, 运动控制, 存储*/
 //运动控制块,包含所有运动相关的操作, 使用前必须使用MotionBlockInit()初始化
-MotionManageBlock StructMotionBlock;
+MotionManageBlock MotionBlock_t;
+CommunicationBlock CommunicationBlock_t;
+StorageDataBlock StorageDataBlock_t;
+
+//驱动系统的信息
+struct DevInfo
+{
+		uint8_t iMajorVersion;
+		uint8_t iMinorVersion;
+		uint8_t iDriverID;
+}DriverBoardInfo;
 
 //初始化所用到的数据结构
 void DataStructureInit(void)
 {
-		
-		MotionBlockMsg iMsg;
-		if(!MotionBlockInit(&StructMotionBlock, &iMsg))
+		DriverBoardInfo.iMajorVersion = VERSION_MAJOR;
+		DriverBoardInfo.iMinorVersion = VERSION_MINOR;
+	
+		while(!StorageBlockInit(&StorageDataBlock_t))
 		{
-			//0x01:运动控制块变量未分配内存
-			//0x02:轴编号函数指针为空
-			//0x04:轴号错误
+				Delay_ms(2000);
+		}
+	
+		while(!MotionBlockInit(&MotionBlock_t))
+		{
+				Delay_ms(2000);
+		}
+		
+		while(!CommunicationBlockInit(&CommunicationBlock_t))
+		{
+				Delay_ms(2000);
 		}
 }
 
@@ -26,13 +48,25 @@ void DiverSystemInit(void)
 		DataStructureInit();
 }
 
-void QueryFromHostHandler(void)
+//处理数据发送
+void DataSendHandler(uint8_t *pData, uint8_t iDataLen)
 {
-		
-		switch()
+		WriteSendBuffer(&CommunicationBlock_t, pData, iDataLen);
+}
+
+//上位机请求数据
+void QueryFromHostHandler(const uint8_t *pRawData)
+{
+		uint8_t arrDataBuffer[16];
+		uint8_t iDataLen = 0;
+	
+		switch((QueryDataObj)pRawData[0])
 		{
 			//请求版本号
-			case VERSION:				
+			case VERSION:		
+				arrDataBuffer[0] = DriverBoardInfo.iMajorVersion;
+				arrDataBuffer[1] = DriverBoardInfo.iMinorVersion;
+				iDataLen = 2;
 				break;
 			//请求细分设置
 			case SUBDIVISION:
@@ -52,10 +86,12 @@ void QueryFromHostHandler(void)
 			//请求限位状态
 			case LIMIT_STATUS:
 				break;
+			case REALTIME_CURRENT:
+				break;
 			
 		}
 		
-		SetTransData();
+		DataSendHandler(arrDataBuffer, iDataLen);
 }
 
 void CommandFromHostHandler(void)
@@ -89,37 +125,86 @@ void CommandFromHostHandler(void)
 }
 
 
-void RecvDataAnalyze()
+
+void HeartBeatHandler(uint8_t *pData)
 {
-		if()
+		WriteSendBuffer(&CommunicationBlock_t, pData, 1);
 }
 
-void ProcessData(void)
+//解析消息类型
+RecvDataType RecvDataAnalyze(const uint8_t *pRawData, uint8_t *pData)
 {
-		RecvDataAnalyze();
-		switch()
+		RecvDataType iType;
+		if(NULL == pRawData || NULL == pData)
+		{
+				iType = Error;
+		}
+		else
+		{
+				switch(pRawData[0])
+				{
+						case 0x81:
+							memcpy(pData, pRawData, 1);
+							iType = HEARTBEAT;
+							break;
+						case 0x01:
+							memcpy(pData, pRawData + 1, 1);
+							iType = CMD;
+							break;
+						case 0x02:
+							memcpy(pData, pRawData + 1, 1);
+							iType = QUERY;
+							break;
+						case 0x03:
+							iType = UPDATE;
+							break;
+				}
+		}
+		
+		return iType;
+}
+
+//根据数据做对应的处理
+void ProcessData(uint8_t *pRawData)
+{
+		RecvDataType iDataType;
+		uint8_t pData[16];
+		if(NULL == pRawData)
+		{
+				printf("\r\nfunc:%s, error:null pointer", __FUNCTION__);
+				return;
+		}
+		iDataType = RecvDataAnalyze(pRawData, pData);
+		switch(iDataType)
 		{
 			case HEARTBEAT:
+				HeartBeatHandler(pData);
 				break;
 			case QUERY:
-				QueryFromHostHandler();
+				QueryFromHostHandler(pData);
 				break;
 			case CMD:
 				CommandFromHostHandler();
 				break;
 			case UPDATE:
 				break;
+			case Error:
+				//sprintf();
+				printf("\r\nfunc:%s,Error Data", __FUNCTION__);
+				break;
 		}
 }
 
 void DriverSystemRun(void)
 {
+		uint8_t arrData[16];
 		//如果收到数据就处理数据
-		if(HostDataGet())
+		if(HostDataGet(&CommunicationBlock_t, arrData))
 		{
-				ProcessData();
+				ProcessData(arrData);
 		}
-		
+		//
+		SlaveDataSend(&CommunicationBlock_t);
 		//根据当前的状态确定LED的闪烁情况
 		LED_ErrorInstruction();
 		//喂狗

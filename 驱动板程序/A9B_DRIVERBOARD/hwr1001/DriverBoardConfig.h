@@ -50,4 +50,6 @@ typedef enum
 
 #define MOVE_NODE_NUM		8
 
+#define DRIVER_DATA_CHANNEL	CAN1
+
 #endif
