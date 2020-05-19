@@ -4,29 +4,22 @@
 #include <stdbool.h>
 #include "includes.h"
 #include "DriverBoardConfig.h"
-#include "MoveControl.h"
+#include "defines.h"
 
 #define QUEUELENGTH	8
 
-typedef uint8_t AxisIndex;
-typedef uint8_t MotionBlockMsg;
-
-
-
 typedef struct MotionBlock
-{
-		MoveBlock MoveBlock_t;	
-		//
-		uint8_t iBlockError;
-		uint8_t iQueueIndex;
-		AxisEnum iAxisIndex;
-		
-		void (*m_pSetAxisIndex)(const uint8_t iBoardID, AxisEnum *iAxisInex);
-		void (*m_pSetMotionData)(struct MotionBlock *Block_t);
+{					
+		void *m_pMoveControl;
+		MoveParams Params_t;
+	
+		void (*m_pMotorDriverInit)(struct MotionBlock *pThis);
+		void (*m_pSetMotionData)(struct MotionBlock *pThis, const MoveParams *Params_t);
+		void (*m_pHomeAxis)(struct MotionBlock *pThis, MoveParams *Params_t);
+		void (*m_pGetMotionData)(struct MotionBlock *pThis, MoveParams *Params_t);
 }MotionManageBlock;
 
-bool MotionBlockInit(MotionManageBlock *structBlock);
+bool MotionBlockInit(MotionManageBlock *Block_t, MoveParams *Params_t);
 void MotionControlInit(void);
-void SetMotionData(MotionManageBlock *Block_t);
 
 #endif

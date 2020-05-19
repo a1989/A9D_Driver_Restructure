@@ -1,5 +1,8 @@
 #include "MotionControl.h"
 #include "stm32f1xx_hal.h"
+#include "MoveControl.h"
+
+#define MOTIONBLOCK MotionManageBlock
 
 //分布式控制时, 根据板ID确定当前控制的是哪个轴
 static void SetAxisIndex(const uint8_t iBoardID, AxisEnum *iAxisIndex)
@@ -22,44 +25,34 @@ static void SetAxisIndex(const uint8_t iBoardID, AxisEnum *iAxisIndex)
 		}
 }
 
-//重置运动控制块
-static void ResetMotionBlock(MotionManageBlock *structBlock)
+void SetMotionData()
 {
-		int i = 0;
-		//初始化电机运动控制块
-		for(i = 0; i < QUEUELENGTH; i++)
-		{
-				MoveBlockInit(structBlock->arrMoveBlockQueue[i]);
-		}
-		
-		structBlock->m_pSetAxisIndex = SetAxisIndex;
+	
+}
+
+static void HomeAxis(struct MotionBlock *pThis, MoveParams *Params_t)
+{
+		MoveBlock *MoveControl_t = NULL;
+	
+		MoveControl_t = pThis->m_pMoveControl;
+		MoveControl_t->m_pHomeAxis(MoveControl_t->m_pThis, Params_t);
 }
 
 //运动控制块初始化
-bool MotionBlockInit(MotionManageBlock *structBlock)
+bool MotionBlockInit(MotionManageBlock *Block_t, MotionParams *Params_t)
 {
-		if(NULL == structBlock)
+		if(NULL == Block_t || NULL == Params_t)
 		{
 				printf("\r\nfunc:%s:block null pointer", __FUNCTION__);
 				return false;
 		}		
 		
-		ResetMotionBlock(structBlock);
+		Block_t->m_pMoveControl = (MoveBlock*)malloc(sizeof(MoveBlock));
+		MoveBlockInit(Block_t->m_pMoveControl);
 		
-		if(NULL == structBlock->m_pSetAxisIndex)
-		{
-				printf("\r\nfunc:%s:m_pSetAxisIndex null pointer", __FUNCTION__);
-				return false;
-		}
-		
-		structBlock->m_pSetAxisIndex(, structBlock->iAxisIndex);
-		
-		//如果是未知轴,则返回错误
-		if(UNKNOWN_AXIS == structBlock->iAxisIndex)
-		{
-				printf("\r\nfunc:%s:UNKNOWN_AXIS", __FUNCTION__);
-				return false;
-		}
+		Block_t->m_pSetMotionData = SetMotionData;
+		Block_t->m_pHomeAxis = HomeAxis;
+		Block_t->m_pThis = Block_t;
 		
 		return true;
 }
@@ -81,10 +74,7 @@ static void PrepareMove(void)
 
 
 
-static void HomeAxis(AxisIndex iAxis)
-{
-		
-}
+
 
 void GetMoveData()
 {

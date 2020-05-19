@@ -3,6 +3,7 @@
 
 #include <stdbool.h>
 #include <stdio.h>
+#include <stdlib.h>
 
 //分布式
 #define DISTRIBUTE	0
@@ -22,7 +23,17 @@
 #define USE_AT93C66		1
 #define DRIVER_STORAGE		USE_AT24C512
 
+//联动控制时控制机械臂的组数
+#define ARM_SYS_NUM		1
+
 #define AXIS_NUM	3
+
+typedef enum
+{
+	MOTOR_DEFAULT = 0,
+	STEPPER,
+	BRUSHLESS
+}MotorType;
 
 typedef enum 
 {
