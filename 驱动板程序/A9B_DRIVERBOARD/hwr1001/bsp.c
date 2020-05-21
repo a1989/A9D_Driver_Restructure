@@ -34,7 +34,6 @@ void BSP_Init(void)
 		MX_I2C2_Init();
 		MX_SPI2_Init();
 		MX_IWDG_Init();
-		MX_IWDG_Init();
 }
 
 void ReadBoardParams(void)

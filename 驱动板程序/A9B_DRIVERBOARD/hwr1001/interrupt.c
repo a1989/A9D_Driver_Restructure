@@ -111,12 +111,7 @@ void HAL_TIM_PeriodElapsedCallback (TIM_HandleTypeDef *htim)		//10ms
 	}
 	if (htim->Instance == htim1.Instance) //tim1 interrupt
 	{
-		//System_Control(); // 系统控制函数
-//                Limit_Switch_Scanning();
-//            if(motor_limit_flag == 2)
-//            {
-//		gCurrent_pos = Location_Cnt;
-//            }
+
 	}
 }
 
@@ -160,12 +155,16 @@ void HAL_CAN_RxCpltCallback (CAN_HandleTypeDef *hcan)
   */
 void HAL_TIM_OC_DelayElapsedCallback (TIM_HandleTypeDef *htim)
 {
-	uint16_t count;
-
-	count=__HAL_TIM_GET_COUNTER (&StepMotor_TIM);
-	__HAL_TIM_SET_COMPARE (&StepMotor_TIM, TIM_CHANNEL_1, (uint16_t)(count + Toggle_Pulse));
-	tim_Pulse_count++;
-	StepMotor_Pulse_cnt = tim_Pulse_count / (motor_step_value * 2);
+		MotionBlock_t.GetEncoderStep();
+		
+		uint16_t count;
+		
+		count =__HAL_TIM_GET_COUNTER (&StepMotor_TIM);
+		__HAL_TIM_SET_COMPARE (&StepMotor_TIM, TIM_CHANNEL_1, (uint16_t)(count + Toggle_Pulse));
+	
+	
+//		tim_Pulse_count++;
+//		StepMotor_Pulse_cnt = tim_Pulse_count / (motor_step_value * 2);
 }
 
 void HAL_GPIO_EXTI_Callback (uint16_t GPIO_Pin)

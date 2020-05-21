@@ -1,33 +1,25 @@
 #include "MoveControl.h"
-#include "stdlib.h"
 
 #define POSITIVE_DIRECTION	1		//正方向
 #define NEGTIVE_DIRECTION		-1	//负方向
 
 typedef struct
 {
-		//电机忙标志
+		//本运动节点忙标志
 		bool bBusy;
 		//到达位置标志
 		bool bDistanceArrived;
-	
+		//停止标志
 		bool bStop;
 		//是否是复位
 		bool bHome[AXIS_NUM];
-		//
+		//电机控制类型
+		MotorControlMode eControlType;
+		//单轴控制时轴的索引
+		AxisEnum eAxisIndex;
+	
 		MotorType arrMotorType[AXIS_NUM];
-		//每个轴的运动距离(mm)
-		uint32_t fMoveDistance[AXIS_NUM];
-		//每个轴的电机运动步数(steps)
-		uint32_t iMotorSteps[AXIS_NUM];
-		//每个轴的电机运动速度(steps/s)
-		uint32_t iMotorStepsPerSecond[AXIS_NUM];
-		uint32_t iEncoderSteps[AXIS_NUM];
-		uint32_t iEncoderStepsPerSecond[AXIS_NUM];
-		float fAcceleration;
-		float fDeceleration;
-		float fStartSpeed;
-		float fEndSpeed;
+	
 }MoveNodeParams;
 
 typedef struct 
@@ -54,14 +46,11 @@ void MoveBlockInit(MoveBlock *Block_t)
 		Block_t->m_pThisPrivate = tNode;
 }
 
-static float CalcCurveForBlock(void)
-{
-	
-}
-
 void PushData(MoveNode_t *Node_t, MoveNodeParams *Params_t)
 {
-		
+		memcpy(&Node_t->arrNodeBuffer[Node_t->iWriteIndex], Params_t, sizeof(MoveNodeParams));
+		Node_t->iWriteIndex = (Node_t->iWriteIndex + 1) % MOVE_NODE_NUM;
+		Node_t->iBufferLen++;
 }
 
 void ClearNodeAll(MoveNode_t *Node_t)
@@ -91,12 +80,50 @@ void PushMoveData(MoveNode_t *pNode, MoveParams *pParams_t)
 		PushData(pNode, &Params_t);
 }
 
+void PauseAxisImmediately()
+{
+		
+}
+
 void StopAxisImmediately()
 {
-	
+		
+}
+
+static void SigleMotorControl(MoveNodeParams *pNode)
+{		
+		switch(pNode->arrMotorType[pNode->eAxisIndex])
+		{
+				case STEPPER:
+					break;
+				case STEPPER_ENCODER:
+					
+					break;
+				case BRUSHLESS:
+					break;
+				default:
+					break;
+		}
 }
 
 void ExecuteBlock(MoveNode_t *pNode)
+{	
+		if(pNode->iBufferLen)
+		{
+				switch(pNode->arrNodeBuffer[pNode->iReadIndex].eControlType)
+				{
+						case CONTROL_SINGLE_AXIS:							
+							SigleMotorControl(&pNode->arrNodeBuffer[pNode->iReadIndex]);
+							break;
+						default:
+							break;
+				}
+				pNode->iReadIndex = (pNode->iReadIndex + 1) % MOVE_NODE_NUM;
+				pNode->iBufferLen--;
+		}
+}
+
+static float CalcCurveForBlock(void)
 {
-		
+	
 }
