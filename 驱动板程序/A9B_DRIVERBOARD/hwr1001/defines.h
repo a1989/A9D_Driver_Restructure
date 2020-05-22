@@ -56,9 +56,20 @@ typedef struct
 }MoveParams;
 
 #if HARDWARE_VERSION == CHENGDU_DESIGN
-#define X_AXIS_TIM	htim2
-#define Y_AXIS_TIM	htim2
-#define Z_AXIS_TIM	htim2
+
+	#define X1_AXIS_TIM		htim2
+	#define Y1_AXIS_TIM		htim2
+	#define Z1_AXIS_TIM		htim2
+	#define RX1_AXIS_TIM 	htim2
+	#define RX2_AXIS_TIM	htim2
+	#define RX3_AXIS_TIM	htim2
+
+	#define X2_AXIS_TIM		htim2
+	#define Y2_AXIS_TIM		htim2
+	#define Z2_AXIS_TIM		htim2
+	#define RX2_AXIS_TIM 	htim2
+	#define RX2_AXIS_TIM	htim2
+	#define RX2_AXIS_TIM	htim2
 
 #endif
 

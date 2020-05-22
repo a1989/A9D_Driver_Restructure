@@ -14,7 +14,7 @@ typedef struct Move_t
 		void (*m_pExecuteBlock)(void *pThisPrivate);
 }MoveBlock;
 
-//初始化运动节点结构,本结构this指针
+//初始化运动节点结构,本结构私有成员指针
 void MoveBlockInit(MoveBlock *Block_t);
 
 #endif

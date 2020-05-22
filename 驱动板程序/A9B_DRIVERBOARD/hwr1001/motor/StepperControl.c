@@ -24,7 +24,14 @@ const uint16_t arrSpeedTable[ACC_TIME_DIVISION][2] = {
 {9950,199}
 };
 
-void EncoderStepperPrepare()
+void SingleEncoderStepperPrepare(AxisEnum eAxisIndex, float fDistance, float fSpeed)
 {
 		
 }
+
+void StepperControlInit(StepperControl *Stepper_t)
+{
+		Stepper_t->m_pSingleEncoderStepperPrepare = SingleEncoderStepperPrepare;
+}
+
+

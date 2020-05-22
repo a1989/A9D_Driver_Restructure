@@ -1,8 +1,13 @@
 #ifndef __STEPPERCONTROL_H__
 #define __STEPPERCONTROL_H__
 
-#include "DriverBoardConfig.h"
+#include "defines.h"
 #include "stm32f1xx_hal.h"
+
+typedef struct
+{
+	
+}AxisIndex;
 
 typedef struct 
 {
@@ -21,5 +26,12 @@ typedef struct
 		float fStartSpeed;
 		float fEndSpeed;
 }StepperParams;
+
+typedef struct
+{
+		void (*m_pSingleEncoderStepperPrepare)(AxisEnum eAxisIndex, float fDistance, float fSpeed);
+}StepperControl;
+
+void StepperControlInit(StepperControl *Stepper_t);
 
 #endif

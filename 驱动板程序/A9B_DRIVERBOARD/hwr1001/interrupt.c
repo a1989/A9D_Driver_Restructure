@@ -155,7 +155,9 @@ void HAL_CAN_RxCpltCallback (CAN_HandleTypeDef *hcan)
   */
 void HAL_TIM_OC_DelayElapsedCallback (TIM_HandleTypeDef *htim)
 {
+		//获取当前编码器的步数
 		MotionBlock_t.GetEncoderStep();
+		//获取
 		
 		uint16_t count;
 		
