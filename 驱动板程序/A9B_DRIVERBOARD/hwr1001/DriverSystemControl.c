@@ -70,6 +70,7 @@ void QueryFromHostHandler(const uint8_t *pRawData)
 				break;
 			//请求细分设置
 			case SUBDIVISION:
+				iDataLen = 2;
 				break;
 			//请求最大电流
 			case MAX_CURRENT:
@@ -94,24 +95,25 @@ void QueryFromHostHandler(const uint8_t *pRawData)
 		DataSendHandler(arrDataBuffer, iDataLen);
 }
 
+//上位机命令
 void CommandFromHostHandler(void)
 {
 		switch()
 		{
 			case MOVE:
 				//将运动数据写入运动控制块
-				StructMotionBlock.m_SetMoveData();
+				MotionBlock_t.m_SetMoveData();
 				break;
 			case HOME:
-				StructMotionBlock.m_HomeAxis();
+				MotionBlock_t.m_HomeAxis();
 				break;
 			case BOARD_RESET:
 				break;
 			case EN_TORQUE:
-				StructMotionBlock.m_SetTorque();
+				MotionBlock_t.m_SetTorque();
 				break;
 			case MOTOR_STOP:
-				StructMotionBlock.m_StopMotor();
+				MotionBlock_t.m_StopMotor();
 				break;
 			case SET_ID:
 				break;
@@ -124,8 +126,7 @@ void CommandFromHostHandler(void)
 		}
 }
 
-
-
+//心跳
 void HeartBeatHandler(uint8_t *pData)
 {
 		WriteSendBuffer(&CommunicationBlock_t, pData, 1);
@@ -195,6 +196,7 @@ void ProcessData(uint8_t *pRawData)
 		}
 }
 
+//主程序
 void DriverSystemRun(void)
 {
 		uint8_t arrData[16];

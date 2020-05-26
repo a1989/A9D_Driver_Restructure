@@ -26,25 +26,25 @@
 /* USER CODE END 0 */
 
 //CAN_HandleTypeDef hcan;
-CAN_HandleTypeDef g_hCAN1;
+//CAN_HandleTypeDef g_hCAN1;
 
 /* CAN init function */
-void MX_CAN_Init(void)
+void MX_CAN_Init(CAN_HandleTypeDef hCAN, CAN_TypeDef *CAN_t)
 {
 
-  g_hCAN1.Instance = CAN1;
-  g_hCAN1.Init.Prescaler = 8;
-  g_hCAN1.Init.Mode = CAN_MODE_NORMAL;
-  g_hCAN1.Init.SJW = CAN_SJW_1TQ;
-  g_hCAN1.Init.BS1 = CAN_BS1_5TQ;
-  g_hCAN1.Init.BS2 = CAN_BS2_3TQ;
-  g_hCAN1.Init.TTCM = DISABLE;
-  g_hCAN1.Init.ABOM = DISABLE;
-  g_hCAN1.Init.AWUM = DISABLE;
-  g_hCAN1.Init.NART = ENABLE;
-  g_hCAN1.Init.RFLM = DISABLE;
-  g_hCAN1.Init.TXFP = DISABLE;
-  if (HAL_CAN_Init(&g_hCAN1) != HAL_OK)
+  hCAN.Instance = CAN_t;
+  hCAN.Init.Prescaler = 8;
+  hCAN.Init.Mode = CAN_MODE_NORMAL;
+  hCAN.Init.SJW = CAN_SJW_1TQ;
+  hCAN.Init.BS1 = CAN_BS1_5TQ;
+  hCAN.Init.BS2 = CAN_BS2_3TQ;
+  hCAN.Init.TTCM = DISABLE;
+  hCAN.Init.ABOM = DISABLE;
+  hCAN.Init.AWUM = DISABLE;
+  hCAN.Init.NART = ENABLE;
+  hCAN.Init.RFLM = DISABLE;
+  hCAN.Init.TXFP = DISABLE;
+  if (HAL_CAN_Init(&hCAN) != HAL_OK)
   {
     Error_Handler();
   }

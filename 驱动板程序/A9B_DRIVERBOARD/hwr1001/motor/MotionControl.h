@@ -1,9 +1,6 @@
 #ifndef __MOTIONCONTROL_H__
 #define __MOTIONCONTROL_H__
 
-#include <stdbool.h>
-#include "includes.h"
-#include "DriverBoardConfig.h"
 #include "defines.h"
 
 #define QUEUELENGTH	8

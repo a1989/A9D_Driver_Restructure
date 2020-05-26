@@ -25,9 +25,9 @@ static void SetAxisIndex(const uint8_t iBoardID, AxisEnum *iAxisIndex)
 		}
 }
 
-void SetMotionData()
+void SetMotionData(float fDiatance, float fSpeed)
 {
-	
+		
 }
 
 static void HomeAxis(struct MotionBlock *pThis, MoveParams *Params_t)

@@ -2,6 +2,11 @@
 #define __DEFINES_H__
 
 #include "DriverBoardConfig.h"
+#include <string.h>
+#include "stm32f1xx_hal.h"
+
+#define PRIVATE_MEMBER_TYPE		void
+#define IS_DATA_TYPE_CORRECT(strParams1, strParams2)		(!strcmp(strParams1, strParams2))
 
 typedef enum
 {
@@ -54,6 +59,12 @@ typedef struct
 		float arrSpeed[AXIS_NUM];
 		MotorType arrMotorType[AXIS_NUM];
 }MoveParams;
+
+typedef union
+{
+		int iIntData;
+		float fFloatData;
+}unData;
 
 #if HARDWARE_VERSION == CHENGDU_DESIGN
 

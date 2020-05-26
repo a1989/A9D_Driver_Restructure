@@ -4,7 +4,6 @@
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
-//#include "defines.h"
 
 #define USE_DRV8711	0
 #define USE_TMC2590	1

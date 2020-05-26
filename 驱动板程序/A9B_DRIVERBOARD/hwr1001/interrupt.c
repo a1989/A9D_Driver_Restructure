@@ -13,6 +13,11 @@ uint8_t gCan_Receive_Flag = 0;
 
 extern EncoderType GetEncoder;
 
+#include "Communication.h"
+
+extern CommunicationBlock CommunicationBlock_t;
+
+
 uint8_t Uart_Receive_Interrupt_Switch (UART_HandleTypeDef* huart, uint8_t* uart_receive_data)
 {
 	uint8_t statu;
@@ -117,28 +122,32 @@ void HAL_TIM_PeriodElapsedCallback (TIM_HandleTypeDef *htim)		//10ms
 
 void HAL_CAN_ErrorCallback (CAN_HandleTypeDef* hcan)
 {
-	printf ("\r\nCAN出错\r\n");
+	printf ("\r\nCAN Error\r\n");
 	HAL_CAN_Receive_IT (hcan, CAN_FIFO0); //开CAN接收中断
 }
 
-//CAN中断函数
+//CAN接收数据
 void HAL_CAN_RxCpltCallback (CAN_HandleTypeDef *hcan)
 {
 	uint8_t i = 0;
-	/* 比较ID是否为0x1314 */
-	if (RxMessage.StdId == driver_can_stdid)
+	/* 比较ID */
+	if (RxMessage.StdId == CommunicationBlock_t.RecvBlock_t.m_pCAN_GetStdID())
 	{
 		for (i = 0; i < 8; i++)
 		{
 			MAIN_TO_DRIVER_DATA[i] = RxMessage.Data[i];
 		}
-		can_Receive_Right_flag = 1; // 接收正确
-		gCan_Receive_Flag = 1;
 	}
 	else
 	{
 		can_Receive_Right_flag = 0;
 	}
+	
+	CommunicationBlock_t.RecvBlock_t.m_pHostDataGet(CommunicationBlock_t.RecvBlock_t.m_pThisPrivate, 
+																									RxMessage.StdId, 
+																									RxMessage.Data, 
+																									RxMessage.DLC);
+	
 	if (HAL_BUSY == HAL_CAN_Receive_IT (hcan, CAN_FIFO0)) //开启中断接收
 	{
 		/* Enable FIFO 0 overrun and message pending Interrupt */
@@ -147,6 +156,33 @@ void HAL_CAN_RxCpltCallback (CAN_HandleTypeDef *hcan)
 	/* 准备中断接收 */
 	//HAL_CAN_Receive_IT (hcan, CAN_FIFO0);
 }
+
+//CAN中断函数
+//void HAL_CAN_RxCpltCallback (CAN_HandleTypeDef *hcan)
+//{
+//	uint8_t i = 0;
+//	/* 比较ID是否为0x1314 */
+//	if (RxMessage.StdId == driver_can_stdid)
+//	{
+//		for (i = 0; i < 8; i++)
+//		{
+//			MAIN_TO_DRIVER_DATA[i] = RxMessage.Data[i];
+//		}
+//		can_Receive_Right_flag = 1; // 接收正确
+//		gCan_Receive_Flag = 1;
+//	}
+//	else
+//	{
+//		can_Receive_Right_flag = 0;
+//	}
+//	if (HAL_BUSY == HAL_CAN_Receive_IT (hcan, CAN_FIFO0)) //开启中断接收
+//	{
+//		/* Enable FIFO 0 overrun and message pending Interrupt */
+//		__HAL_CAN_ENABLE_IT (hcan, CAN_IT_FOV0 | CAN_IT_FMP0);
+//	}
+//	/* 准备中断接收 */
+//	//HAL_CAN_Receive_IT (hcan, CAN_FIFO0);
+//}
 /**
   * 函数功能: 定时器比较输出中断回调函数
   * 输入参数: htim：定时器句柄指针

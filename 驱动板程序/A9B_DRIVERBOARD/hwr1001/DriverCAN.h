@@ -3,16 +3,14 @@
 
 #include "stm32f1xx_hal.h"
 #include "DriverBoardConfig.h"
+#include "defines.h"
 
 typedef struct
 {
-		CanTxMsgTypeDef TxMessage;
-		uint8_t iStdID;
-		uint8_t arrSendBuffer[8];
-		uint8_t iDataLen;
+		//指向本模块私有数据结构的指针
+		PRIVATE_MEMBER_TYPE *pThisPrivate;
 }CAN_SendBlock;
 
-void CAN_Init(void);
-void CAN_SendConfig(CAN_SendBlock *Block_t);
+void DriverCAN_Init(CAN_SendBlock *Block_t, CAN_TypeDef *CAN_t, uint32_t iStdID);
 	
 #endif

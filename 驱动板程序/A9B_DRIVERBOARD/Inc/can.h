@@ -30,13 +30,13 @@
 
 /* USER CODE END Includes */
 
-extern CAN_HandleTypeDef hcan;
+//extern CAN_HandleTypeDef g_hCAN1;
 
 /* USER CODE BEGIN Private defines */
 
 /* USER CODE END Private defines */
 
-void MX_CAN_Init(void);
+void MX_CAN_Init(CAN_HandleTypeDef hCAN, CAN_TypeDef *CAN_t);
 
 /* USER CODE BEGIN Prototypes */
 
