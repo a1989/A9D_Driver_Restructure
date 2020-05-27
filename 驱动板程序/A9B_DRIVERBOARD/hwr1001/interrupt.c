@@ -15,7 +15,7 @@ extern EncoderType GetEncoder;
 
 #include "Communication.h"
 
-extern CommunicationBlock CommunicationBlock_t;
+extern CommunicationBlock BlockCAN1_t;
 
 
 uint8_t Uart_Receive_Interrupt_Switch (UART_HandleTypeDef* huart, uint8_t* uart_receive_data)
@@ -129,24 +129,21 @@ void HAL_CAN_ErrorCallback (CAN_HandleTypeDef* hcan)
 //CAN接收数据
 void HAL_CAN_RxCpltCallback (CAN_HandleTypeDef *hcan)
 {
-	uint8_t i = 0;
-	/* 比较ID */
-	if (RxMessage.StdId == CommunicationBlock_t.RecvBlock_t.m_pCAN_GetStdID())
-	{
-		for (i = 0; i < 8; i++)
-		{
-			MAIN_TO_DRIVER_DATA[i] = RxMessage.Data[i];
-		}
-	}
-	else
-	{
-		can_Receive_Right_flag = 0;
-	}
+//	uint8_t i = 0;
+//	/* 比较ID */
+//	if (RxMessage.StdId == (*(uint32_t*)BlockCAN1_t.m_pGetConfigParams(BlockCAN1_t.m_pThisPrivate)->pParam))
+//	{
+//		for (i = 0; i < 8; i++)
+//		{
+//			MAIN_TO_DRIVER_DATA[i] = RxMessage.Data[i];
+//		}
+//	}
+//	else
+//	{
+//		can_Receive_Right_flag = 0;
+//	}
 	
-	CommunicationBlock_t.RecvBlock_t.m_pHostDataGet(CommunicationBlock_t.RecvBlock_t.m_pThisPrivate, 
-																									RxMessage.StdId, 
-																									RxMessage.Data, 
-																									RxMessage.DLC);
+	BlockCAN1_t.m_pGetHostData(BlockCAN1_t.m_pThisPrivate);
 	
 	if (HAL_BUSY == HAL_CAN_Receive_IT (hcan, CAN_FIFO0)) //开启中断接收
 	{

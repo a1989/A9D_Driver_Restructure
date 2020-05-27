@@ -8,7 +8,7 @@
 /*系统功能分为三大部分:通信, 运动控制, 存储*/
 //运动控制块,包含所有运动相关的操作, 使用前必须使用MotionBlockInit()初始化
 MotionManageBlock MotionBlock_t;
-CommunicationBlock CommunicationBlock_t;
+CommunicationBlock BlockCAN1_t;
 StorageDataBlock StorageDataBlock_t;
 
 //驱动系统的信息
@@ -35,7 +35,7 @@ void DataStructureInit(void)
 				Delay_ms(2000);
 		}
 		
-		while(!CommunicationBlockInit(&CommunicationBlock_t))
+		while(!CommunicationBlockInit(&BlockCAN1_t, CAN1))
 		{
 				Delay_ms(2000);
 		}

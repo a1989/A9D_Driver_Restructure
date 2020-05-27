@@ -23,6 +23,7 @@
 #include "stm32f1xx_it.h"
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
+#include "Communication.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -57,7 +58,7 @@
 
 /* External variables --------------------------------------------------------*/
 extern DMA_HandleTypeDef hdma_adc1;
-extern CAN_HandleTypeDef hcan;
+//extern CAN_HandleTypeDef hcan;
 extern TIM_HandleTypeDef htim1;
 extern TIM_HandleTypeDef htim2;
 extern TIM_HandleTypeDef htim3;
@@ -65,7 +66,7 @@ extern TIM_HandleTypeDef htim4;
 extern DMA_HandleTypeDef hdma_usart1_tx;
 extern UART_HandleTypeDef huart1;
 /* USER CODE BEGIN EV */
-
+extern CommunicationBlock BlockCAN1_t;
 /* USER CODE END EV */
 
 /******************************************************************************/
@@ -238,9 +239,16 @@ void DMA1_Channel4_IRQHandler(void)
 void USB_LP_CAN1_RX0_IRQHandler(void)
 {
   /* USER CODE BEGIN USB_LP_CAN1_RX0_IRQn 0 */
-
+	CAN_HandleTypeDef *hcan;
+	
+	hcan = (CAN_HandleTypeDef *)BlockCAN1_t.hHandler;
+	if(NULL == hcan)
+	{
+			printf("\r\nfunc:%s, error:Null", __FUNCTION__);
+			return;			
+	}
   /* USER CODE END USB_LP_CAN1_RX0_IRQn 0 */
-  HAL_CAN_IRQHandler(&hcan);
+  HAL_CAN_IRQHandler(hcan);
   /* USER CODE BEGIN USB_LP_CAN1_RX0_IRQn 1 */
 
   /* USER CODE END USB_LP_CAN1_RX0_IRQn 1 */

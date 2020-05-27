@@ -6,6 +6,7 @@
 #include "stm32f1xx_hal.h"
 
 #define PRIVATE_MEMBER_TYPE		void
+#define VOID_HandleTypeDef		void
 #define IS_DATA_TYPE_CORRECT(strParams1, strParams2)		(!strcmp(strParams1, strParams2))
 
 typedef enum

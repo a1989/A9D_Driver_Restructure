@@ -13,6 +13,7 @@ typedef struct
 		uint8_t iDataLen;
 		void (*m_pSendConfig)();
 		char *strType;
+		bool bDataReceived;
 }CAN_Handler;
 
 
@@ -56,7 +57,7 @@ void CAN_FilterConfig(CAN_Handler *CAN_t)
 		}
 }
 
-void DriverCAN_Init(CAN_SendBlock *Block_t, CAN_TypeDef *CAN_t, uint32_t iStdID)
+void DriverCAN_Init(CAN_Block *Block_t, CAN_TypeDef *CAN_t, uint32_t iStdID)
 {		
 		Block_t->pThisPrivate = CAN_MallocBlock(CAN_t, iStdID);
 		CAN_FilterConfig((CAN_Handler *)Block_t->pThisPrivate);
@@ -81,3 +82,34 @@ static void CAN_SendConfig(PRIVATE_MEMBER_TYPE *pThis)
 		HAL_CAN_Transmit_IT (&Block_t->hCAN);
 }
 
+CAN_HandleTypeDef *CAN_GetHandler(PRIVATE_MEMBER_TYPE *pThis)
+{
+		CAN_Handler *pHandler = NULL;
+		
+		pHandler = (CAN_Handler *)pThis;
+		if(!IS_DATA_TYPE_CORRECT(pHandler->strType, CAN_TYPE_NAME))
+		{
+				printf("\r\nFunc:%s,Error:Param Error", __FUNCTION__);
+				return NULL;
+		}
+		
+		return &pHandler->hCAN;
+}
+
+void GetData(PRIVATE_MEMBER_TYPE *pThis, uint8_t *pData, uint8_t *iLen)
+{
+		CAN_Handler *pHandler = NULL;
+		
+		pHandler = (CAN_Handler *)pThis;
+		if(!IS_DATA_TYPE_CORRECT(pHandler->strType, CAN_TYPE_NAME))
+		{
+				printf("\r\nFunc:%s,Error:Param Error", __FUNCTION__);
+				return;
+		}
+		
+		if(pHandler->RxMessage.StdId == pHandler->iStdID)
+		{
+				memcpy(pData, pHandler->RxMessage.Data, pHandler->RxMessage.DLC);
+				*iLen = pHandler->RxMessage.DLC;
+		}
+}

@@ -25,27 +25,29 @@ typedef enum
 		SUBDIVISION
 }QueryDataObj;
 
+typedef enum
+{
+		eCAN1 = 0,
+		eCAN2
+}CommunicationType;
 
 typedef struct
 {
-		PRIVATE_MEMBER_TYPE *m_pThisPrivate;
-		bool (*m_pHostDataGet)(PRIVATE_MEMBER_TYPE *m_pPrivate, CAN_TypeDef *CAN_t, uint8_t *pData, uint8_t iDataLen);
-		uint16_t (*m_pCAN_GetStdID)(void);
-}structRecvBlock;
-
-
-typedef struct
-{
-		PRIVATE_MEMBER_TYPE *m_pThisPrivate;
-}structSendBlock;
+		CommunicationType eType;
+		void *pParam;
+}CommunicationParams;
 
 
 typedef struct 
 {
-		structRecvBlock RecvBlock_t;
-		structSendBlock SendBlock_t;		
+		PRIVATE_MEMBER_TYPE *m_pThisPrivate;	
+		VOID_HandleTypeDef *hHandler;
+		bool (*m_pGetHostData)(PRIVATE_MEMBER_TYPE *m_pPrivate);
+		void (*m_pSlaveDataPrepare)(PRIVATE_MEMBER_TYPE *m_pPrivate, uint8_t *pData, uint8_t iDataLen);
+		CommunicationParams *(*m_pGetConfigParams)(PRIVATE_MEMBER_TYPE *Block_t);
 }CommunicationBlock;
 
-bool CommunicationBlockInit(CommunicationBlock *Block_t);
+//初始化通信控制块
+bool CommunicationBlockInit(CommunicationBlock *Block_t, CommunicationParams Params_t);
 
 #endif

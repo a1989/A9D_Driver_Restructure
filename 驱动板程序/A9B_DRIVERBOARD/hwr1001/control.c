@@ -19,7 +19,7 @@ uint16_t driver_can_stdid = 0xa2; //定义驱动板ID
 uint16_t mian_can_stid = 0xa0; // 定义主控板ID
 
 CanTxMsgTypeDef TxMessage ;
-CanRxMsgTypeDef RxMessage ;
+//CanRxMsgTypeDef RxMessage ;
 
 uint8_t DRIVER_TO_MAIN_DATA[DRIVER_TO_MAIN_DATA_LEN] = {0x0, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00}; // 驱动板到主控板的数据
 uint8_t MAIN_TO_DRIVER_DATA[MAIN_TO_DRIVER_DATA_LEN] = {0x0, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00}; // 主控板到驱动板的数据 ,
