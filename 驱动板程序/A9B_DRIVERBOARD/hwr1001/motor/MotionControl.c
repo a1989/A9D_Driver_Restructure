@@ -1,8 +1,21 @@
 #include "MotionControl.h"
-#include "stm32f1xx_hal.h"
-#include "MoveControl.h"
+#include "MotorControl.h"
 
-#define MOTIONBLOCK MotionManageBlock
+#define MOTION_TYPE_NAME	"MotionTypedef"
+
+typedef struct
+{
+		MotorBlock *MotorBlock_t;
+		MotorBlock *BlockNext;
+}MotorList;
+
+typedef struct
+{
+		MotionParams Params_t;
+		void *pInterface;
+		char *strType;
+		MotorList MotorList_t;
+}PrivateBlock;
 
 //分布式控制时, 根据板ID确定当前控制的是哪个轴
 static void SetAxisIndex(const uint8_t iBoardID, AxisEnum *iAxisIndex)
@@ -30,31 +43,46 @@ void SetMotionData(float fDiatance, float fSpeed)
 		
 }
 
-static void HomeAxis(struct MotionBlock *pThis, MoveParams *Params_t)
-{
-		MoveBlock *MoveControl_t = NULL;
-	
-		MoveControl_t = pThis->m_pMoveControl;
-		MoveControl_t->m_pHomeAxis(MoveControl_t->m_pThis, Params_t);
-}
-
 //运动控制块初始化
 bool MotionBlockInit(MotionManageBlock *Block_t, MotionParams *Params_t)
 {
+		PrivateBlock *pPrivate_t = NULL;
+	
 		if(NULL == Block_t || NULL == Params_t)
 		{
 				printf("\r\nfunc:%s:block null pointer", __FUNCTION__);
 				return false;
 		}		
 		
-		Block_t->m_pMoveControl = (MoveBlock*)malloc(sizeof(MoveBlock));
-		MoveBlockInit(Block_t->m_pMoveControl);
+		pPrivate_t = (PrivateBlock *)malloc(sizeof(PrivateBlock));
+		
+		pPrivate_t->strType = MOTION_TYPE_NAME;
 		
 		Block_t->m_pSetMotionData = SetMotionData;
 		Block_t->m_pHomeAxis = HomeAxis;
 		Block_t->m_pThis = Block_t;
 		
 		return true;
+}
+
+//添加一个电机
+void AddMotor(PRIVATE_MEMBER_TYPE *m_pThisPrivate, MotorParams *Params_t)
+{
+		PrivateBlock *pPrivate_t = NULL;
+	
+		if(NULL == m_pThisPrivate || NULL == Params_t)
+		{
+				printf("\r\nfunc:%s:block null pointer", __FUNCTION__);
+				return;
+		}				
+}
+
+static void HomeAxis(struct MotionBlock *pThis, MoveParams *Params_t)
+{
+		MoveBlock *MoveControl_t = NULL;
+	
+		MoveControl_t = pThis->m_pMoveControl;
+		MoveControl_t->m_pHomeAxis(MoveControl_t->m_pThis, Params_t);
 }
 
 void ProcessBlockData()
@@ -110,11 +138,6 @@ static float GetCurrentSpeed(void)
 static float GetCurrentLocation(void)
 {
 
-}
-
-void MotionControlInit(void)
-{
-		
 }
 
 void PushMoveData(MoveBlock *Block_t, float fTargetPos, float fSpeed)	

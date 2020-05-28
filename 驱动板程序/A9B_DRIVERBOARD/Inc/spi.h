@@ -36,8 +36,8 @@ extern SPI_HandleTypeDef hspi2;
 
 /* USER CODE END Private defines */
 
-void MX_SPI2_Init(void);
-
+//void MX_SPI2_Init(void);
+void MX_SPI_Init(SPI_HandleTypeDef hSPI, SPI_TypeDef *SPI_t);
 /* USER CODE BEGIN Prototypes */
 
 /* USER CODE END Prototypes */

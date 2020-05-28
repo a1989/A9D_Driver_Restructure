@@ -6,8 +6,12 @@
 
 typedef struct
 {
-	
-}AxisIndex;
+		DriverMode eMode;
+		StepperDriver eDriver;
+		TIM_HandleTypeDef hTIM;
+		uint16_t iSubdivision;
+		uint16_t iCurrent;
+}DriverParams;
 
 typedef struct 
 {
@@ -29,9 +33,11 @@ typedef struct
 
 typedef struct
 {
+		PRIVATE_MEMBER_TYPE *m_pThisPrivate;
 		void (*m_pSingleEncoderStepperPrepare)(AxisEnum eAxisIndex, float fDistance, float fSpeed);
+		void (*m_pPulse)();
 }StepperControl;
 
-void StepperControlInit(StepperControl *Stepper_t);
+void StepperControlInit(StepperControl *Stepper_t, DriverParams *Params_t);
 
 #endif

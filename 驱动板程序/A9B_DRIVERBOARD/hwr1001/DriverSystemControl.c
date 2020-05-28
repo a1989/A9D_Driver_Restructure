@@ -7,9 +7,9 @@
 
 /*系统功能分为三大部分:通信, 运动控制, 存储*/
 //运动控制块,包含所有运动相关的操作, 使用前必须使用MotionBlockInit()初始化
-MotionManageBlock MotionBlock_t;
-CommunicationBlock BlockCAN1_t;
-StorageDataBlock StorageDataBlock_t;
+MotionManageBlock g_SingleAxis_t;
+CommunicationBlock g_BlockCAN1_t;
+StorageDataBlock g_StorageDataBlock_t;
 
 //驱动系统的信息
 struct DevInfo
@@ -22,6 +22,8 @@ struct DevInfo
 //初始化所用到的数据结构
 void DataStructureInit(void)
 {
+		CommunicationParams ParamsCAN1;
+		uint32_t iStdId = 0x0;
 		DriverBoardInfo.iMajorVersion = VERSION_MAJOR;
 		DriverBoardInfo.iMinorVersion = VERSION_MINOR;
 	
@@ -35,7 +37,9 @@ void DataStructureInit(void)
 				Delay_ms(2000);
 		}
 		
-		while(!CommunicationBlockInit(&BlockCAN1_t, CAN1))
+		ParamsCAN1.eType = eCAN1;
+		ParamsCAN1.pParam = &iStdId;
+		while(!CommunicationBlockInit(&g_BlockCAN1_t, ParamsCAN1))
 		{
 				Delay_ms(2000);
 		}
@@ -105,7 +109,7 @@ void CommandFromHostHandler(void)
 				MotionBlock_t.m_SetMoveData();
 				break;
 			case HOME:
-				MotionBlock_t.m_HomeAxis();
+				SingleAxis_t.m_HomeAxis();
 				break;
 			case BOARD_RESET:
 				break;
@@ -129,11 +133,12 @@ void CommandFromHostHandler(void)
 //心跳
 void HeartBeatHandler(uint8_t *pData)
 {
-		WriteSendBuffer(&CommunicationBlock_t, pData, 1);
+		uint8_t iData = HEART_BEAT_DATA;
+		BlockCAN1_t.m_pSlaveDataPrepare(BlockCAN1_t.m_pThisPrivate, &iData, 1);
 }
 
 //解析消息类型
-RecvDataType RecvDataAnalyze(const uint8_t *pRawData, uint8_t *pData)
+static RecvDataType RecvDataAnalyze(const uint8_t *pRawData, uint8_t *pData, uint8_t iDataLen)
 {
 		RecvDataType iType;
 		if(NULL == pRawData || NULL == pData)
@@ -166,20 +171,24 @@ RecvDataType RecvDataAnalyze(const uint8_t *pRawData, uint8_t *pData)
 }
 
 //根据数据做对应的处理
-void ProcessData(uint8_t *pRawData)
+void ProcessData(uint8_t *pRawData, uint8_t iDataLen)
 {
 		RecvDataType iDataType;
-		uint8_t pData[16];
+		static uint8_t pData[16] = {0};
+		bool bClearBuffer = true;
 		if(NULL == pRawData)
 		{
 				printf("\r\nfunc:%s, error:null pointer", __FUNCTION__);
 				return;
 		}
-		iDataType = RecvDataAnalyze(pRawData, pData);
+		iDataType = RecvDataAnalyze(pRawData, pData, iDataLen);
 		switch(iDataType)
 		{
 			case HEARTBEAT:
 				HeartBeatHandler(pData);
+				break;
+			case ASSEMBLE:
+				bClearBuffer = false;
 				break;
 			case QUERY:
 				QueryFromHostHandler(pData);
@@ -194,16 +203,25 @@ void ProcessData(uint8_t *pRawData)
 				printf("\r\nfunc:%s,Error Data", __FUNCTION__);
 				break;
 		}
+		
+		if(bClearBuffer)
+		{
+				memset(pData, 0, sizeof(pData));
+		}
 }
 
 //主程序
 void DriverSystemRun(void)
 {
-		uint8_t arrData[16];
+		uint8_t *arrData;
+		uint8_t iDataLen = 0;
+		bool bDataAvailabel;
+	
+		g_BlockCAN1_t.m_pPopMessage(g_BlockCAN1_t.m_pThisPrivate, arrData, &iDataLen, &bDataAvailabel)
 		//如果收到数据就处理数据
-		if(HostDataGet(&CommunicationBlock_t, arrData))
+		if(bDataAvailabel)
 		{
-				ProcessData(arrData);
+				ProcessData(arrData, iDataLen);
 		}
 		//
 		SlaveDataSend(&CommunicationBlock_t);

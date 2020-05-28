@@ -61,11 +61,32 @@ typedef struct
 		MotorType arrMotorType[AXIS_NUM];
 }MoveParams;
 
+typedef enum
+{
+		eSPI1 = 0,
+		eSPI2
+}DriverMode;
+
+typedef enum
+{
+		eDRV8711 = 0,
+		eTMC2590
+}StepperDriver;
+
 typedef union
 {
 		int iIntData;
 		float fFloatData;
 }unData;
+
+#define HEART_BEAT_DATA		0x81
+
+#define X_AXIS_INDEX		0
+#define Y_AXIS_INDEX		1
+#define Z_AXIS_INDEX		2
+#define RX_AXIS_INDEX		3
+#define RY_AXIS_INDEX		4
+#define RZ_AXIS_INDEX		5
 
 #if HARDWARE_VERSION == CHENGDU_DESIGN
 

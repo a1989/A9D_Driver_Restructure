@@ -1,4 +1,11 @@
 #include "StepperControl.h"
+#include "DRV8711.h"
+
+typedef struct
+{
+		VOID_HandleTypeDef *hHandle;
+		char *strType;
+}PrivateBlock;
 
 //×ªËÙ,¾àÀë
 const uint16_t arrSpeedTable[ACC_TIME_DIVISION][2] = {
@@ -29,8 +36,34 @@ void SingleEncoderStepperPrepare(AxisEnum eAxisIndex, float fDistance, float fSp
 		
 }
 
-void StepperControlInit(StepperControl *Stepper_t)
+void StepperControlInit(StepperControl *Stepper_t, DriverParams *Params_t)
 {
+		PrivateBlock *pPrivate = NULL;
+		DRV8711_Block *pDRV8711 = NULL;
+		DRV8711_Params *pDRV8711_Params = NULL;
+	
+		if(NULL == Stepper_t)
+		{
+				printf("\r\nfunc:%s, error:Null Pointer", __FUNCTION__);				
+				return;
+		}
+		
+		pPrivate = (PrivateBlock *)malloc(sizeof(PrivateBlock));
+		
+		switch(Params_t->eDriver)
+		{
+				case eDRV8711:					
+					pDRV8711 = (DRV8711_Block *)malloc(sizeof(DRV8711_Block));
+					pDRV8711_Params->eMode = Params_t->eMode;
+					DRV8711_Init(pDRV8711->m_pThisPrivate, pDRV8711_Params);
+					break;
+				case eTMC2590:
+					break;
+				default:
+					break;
+		}
+		
+		Stepper_t->m_pThisPrivate = pPrivate;
 		Stepper_t->m_pSingleEncoderStepperPrepare = SingleEncoderStepperPrepare;
 }
 

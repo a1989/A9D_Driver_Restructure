@@ -6,6 +6,7 @@
 typedef enum
 {
 		HEARTBEAT = 0,
+		ASSEMBLE,
 		QUERY,
 		CMD,
 		UPDATE,
@@ -34,6 +35,7 @@ typedef enum
 typedef struct
 {
 		CommunicationType eType;
+		//void参数类型需要针对于不同的通信方式
 		void *pParam;
 }CommunicationParams;
 
@@ -45,6 +47,8 @@ typedef struct
 		bool (*m_pGetHostData)(PRIVATE_MEMBER_TYPE *m_pPrivate);
 		void (*m_pSlaveDataPrepare)(PRIVATE_MEMBER_TYPE *m_pPrivate, uint8_t *pData, uint8_t iDataLen);
 		CommunicationParams *(*m_pGetConfigParams)(PRIVATE_MEMBER_TYPE *Block_t);
+		bool (*m_pPopMessage)(PRIVATE_MEMBER_TYPE *m_pPrivate, uint8_t *pData, uint8_t *iDataLen, bool *bAvailable);
+		void (*m_pExeBlock)(PRIVATE_MEMBER_TYPE *m_pPrivate);
 }CommunicationBlock;
 
 //初始化通信控制块

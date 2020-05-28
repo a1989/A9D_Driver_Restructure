@@ -5,18 +5,26 @@
 
 #define QUEUELENGTH	8
 
-typedef struct MotionBlock
+typedef struct
+{
+		MultiAxisMode eAxisMode;
+		MotorControlMode eMotorMode;
+		MotorType *eMotorType;
+		uint8_t iAxisNum;
+}MotionParams;
+
+typedef struct
 {					
-		void *m_pMoveControl;
+		PRIVATE_MEMBER_TYPE *m_pThisPrivate;
 		MoveParams Params_t;
-	
-		void (*m_pMotorDriverInit)(struct MotionBlock *pThis);
-		void (*m_pSetMotionData)(struct MotionBlock *pThis, const MoveParams *Params_t);
-		void (*m_pHomeAxis)(struct MotionBlock *pThis, MoveParams *Params_t);
-		void (*m_pGetMotionData)(struct MotionBlock *pThis, MoveParams *Params_t);
+		
+		void (*m_pAddMotor)(PRIVATE_MEMBER_TYPE *m_pThisPrivate, MotionParams *Params_t);
+		void (*m_pMotorDriverInit)(PRIVATE_MEMBER_TYPE *m_pThisPrivate);
+		void (*m_pSetMotionData)(PRIVATE_MEMBER_TYPE *m_pThisPrivate, const MoveParams *Params_t);
+		void (*m_pHomeAxis)(PRIVATE_MEMBER_TYPE *m_pThisPrivate, MoveParams *Params_t);
+		void (*m_pGetMotionData)(PRIVATE_MEMBER_TYPE *m_pThisPrivate, MoveParams *Params_t);
 }MotionManageBlock;
 
-bool MotionBlockInit(MotionManageBlock *Block_t, MoveParams *Params_t);
-void MotionControlInit(void);
+bool MotionBlockInit(MotionManageBlock *Block_t, MotionParams *Params_t);
 
 #endif

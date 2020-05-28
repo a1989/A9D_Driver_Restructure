@@ -397,11 +397,6 @@
               <FilePath>..\hwr1001\at24c512\at24c512.c</FilePath>
             </File>
             <File>
-              <FileName>drv8711.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>..\hwr1001\motor\drv8711.c</FilePath>
-            </File>
-            <File>
               <FileName>encoder.c</FileName>
               <FileType>1</FileType>
               <FilePath>..\hwr1001\motor\encoder.c</FilePath>
@@ -560,6 +555,11 @@
               <FileName>EEPROM_AT24C512.c</FileName>
               <FileType>1</FileType>
               <FilePath>..\hwr1001\at24c512\EEPROM_AT24C512.c</FilePath>
+            </File>
+            <File>
+              <FileName>StepperControl.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\hwr1001\motor\StepperControl.c</FilePath>
             </File>
           </Files>
         </Group>

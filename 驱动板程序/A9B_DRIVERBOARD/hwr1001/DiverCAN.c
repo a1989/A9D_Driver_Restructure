@@ -59,8 +59,8 @@ void CAN_FilterConfig(CAN_Handler *CAN_t)
 
 void DriverCAN_Init(CAN_Block *Block_t, CAN_TypeDef *CAN_t, uint32_t iStdID)
 {		
-		Block_t->pThisPrivate = CAN_MallocBlock(CAN_t, iStdID);
-		CAN_FilterConfig((CAN_Handler *)Block_t->pThisPrivate);
+		Block_t->m_pThisPrivate = CAN_MallocBlock(CAN_t, iStdID);
+		CAN_FilterConfig((CAN_Handler *)Block_t->m_pThisPrivate);
 }
 
 //ÅäÖÃCAN·¢ËÍÄÚÈÝ
@@ -111,5 +111,28 @@ void GetData(PRIVATE_MEMBER_TYPE *pThis, uint8_t *pData, uint8_t *iLen)
 		{
 				memcpy(pData, pHandler->RxMessage.Data, pHandler->RxMessage.DLC);
 				*iLen = pHandler->RxMessage.DLC;
+		}
+}
+
+void SendData(PRIVATE_MEMBER_TYPE *pThis, uint8_t *pData, uint8_t iLen)
+{
+		CAN_Handler *pHandler = NULL;
+		
+		pHandler = (CAN_Handler *)pThis;
+		if(!IS_DATA_TYPE_CORRECT(pHandler->strType, CAN_TYPE_NAME))
+		{
+				printf("\r\nFunc:%s,Error:Param Error", __FUNCTION__);
+				return;
+		}
+		
+		if(pHandler->RxMessage.StdId == pHandler->iStdID)
+		{
+				pHandler->TxMessage.StdId = pHandler->iStdID;
+				pHandler->TxMessage.IDE = CAN_ID_STD;
+				pHandler->TxMessage.RTR = CAN_RTR_DATA;
+				pHandler->TxMessage.DLC = iLen;
+				memcpy(pHandler->TxMessage.Data, pData, iLen);
+				__HAL_UNLOCK (&pHandler->hCAN);
+				HAL_CAN_Transmit_IT (&pHandler->hCAN);
 		}
 }

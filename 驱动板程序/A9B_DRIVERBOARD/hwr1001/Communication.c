@@ -22,7 +22,6 @@ typedef struct
 		uint8_t iWriteIndex;
 		uint8_t iReadIndex;
 		StructDataBuffer iRecvBuffer_t[RECV_BUFFER_SIZE];
-		StructDataBuffer iCache;
 		char *strType;
 }StructRecvHandler;
 
@@ -30,7 +29,7 @@ typedef struct
 {
 		uint8_t iBufferLen;
 		uint8_t iWriteIndex;
-		uint8_t iSendIndex;
+		uint8_t iReadIndex;
 		StructDataBuffer iSendBuffer_t[SEND_BUFFER_SIZE];
 		char *strType;
 }StructSendHandler;
@@ -77,6 +76,7 @@ StructSendHandler *MallocSend_t(void)
 {
 		StructSendHandler *pSend_t = (StructSendHandler*)malloc(sizeof(StructSendHandler));
 		pSend_t->iBufferLen = 0;
+		pSend_t->iReadIndex = 0;
 		pSend_t->iWriteIndex = 0;
 		pSend_t->strType = SEND_TYPE_NAME;
 	
@@ -113,19 +113,85 @@ bool CommunicationBlockInit(CommunicationBlock *Block_t, CommunicationParams Par
 		}
 }
 
-bool PopRecvBuffer(StructRecvHandler *Block_t, uint8_t *pData)
+//从消息接收缓冲区中获取一条消息
+void PopMessage(PRIVATE_MEMBER_TYPE *Block_t, uint8_t *pData, uint8_t *iDataLen, bool *bAvailable)
 {
-		if(Block_t->iBufferLen)
+		static PrivateBlock *Private_t = NULL;
+		*bAvailable = false;
+	
+		if(NULL == Block_t)
+		{
+				printf("\r\nfunc:%s, error:Null Pointer", __FUNCTION__);				
+				return;
+		}
+		
+		Private_t = (PrivateBlock *)Block_t;
+
+		//形参类型检查
+		if(!IS_DATA_TYPE_CORRECT(Private_t->strType, PARAMS_TYPE_NAME))
+		{
+				printf("\r\nfunc:%s, error:Param Type", __FUNCTION__);
+				return;
+		}		
+		
+		if(Private_t->RecvBlock_t->iBufferLen)
 		{
 				if(NULL == pData)
 				{
-						return false;
+						printf("\r\nfunc:%s, error:pData Null", __FUNCTION__);
+						return;
 				}
 				
-				memcpy(pData, Block_t->iRecvBuffer[Block_t->iReadIndex], RECV_HOST_DATA_SIZE);
-				Block_t->iBufferLen -= 1;
-				Block_t->iReadIndex = (Block_t->iReadIndex + 1) % RECV_BUFFER_SIZE;
+				memcpy(pData, Private_t->RecvBlock_t->iRecvBuffer_t[Private_t->RecvBlock_t->iReadIndex].iBuffer, 
+											Private_t->RecvBlock_t->iRecvBuffer_t[Private_t->RecvBlock_t->iReadIndex].iDataLen);
+				Private_t->RecvBlock_t->iBufferLen--;
+				Private_t->RecvBlock_t->iReadIndex = (Private_t->RecvBlock_t->iReadIndex + 1) % RECV_BUFFER_SIZE;
+				*bAvailable = true;
 		}
+}
+
+static void SendMessage(PRIVATE_MEMBER_TYPE *Block_t)
+{
+		static PrivateBlock *Private_t = NULL;
+		CAN_Block *CAN_t = NULL;
+	
+		if(NULL == Block_t)
+		{
+				printf("\r\nfunc:%s, error:Null Pointer", __FUNCTION__);
+				return;
+		}
+		
+		Private_t = (PrivateBlock *)Block_t;
+
+		//形参类型检查
+		if(!IS_DATA_TYPE_CORRECT(Private_t->strType, PARAMS_TYPE_NAME))
+		{
+				printf("\r\nfunc:%s, error:Param Type", __FUNCTION__);
+				return;
+		}		
+		
+		if(Private_t->SendBlock_t->iBufferLen)
+		{				
+				switch(Private_t->Params_t.eType)
+				{
+						case eCAN1:
+							CAN_t = (CAN_Block *)Private_t->pInterface;
+							CAN_t->m_pSendData(CAN_t->m_pThisPrivate, Private_t->SendBlock_t->iSendBuffer_t[Private_t->SendBlock_t->iReadIndex].iBuffer, 
+																												Private_t->SendBlock_t->iSendBuffer_t[Private_t->SendBlock_t->iReadIndex].iDataLen);
+							break;
+						default:
+							break;
+				}
+				
+				Private_t->SendBlock_t->iBufferLen--;
+				Private_t->SendBlock_t->iReadIndex = (Private_t->SendBlock_t->iReadIndex + 1) % SEND_BUFFER_SIZE;
+		}		
+}
+
+//执行本模块
+void ExeBlock(PRIVATE_MEMBER_TYPE *Block_t)
+{
+		SendMessage(Block_t);
 }
 
 //获取此通信模块的通信参数
@@ -150,7 +216,7 @@ CommunicationParams *GetConfigParams(PRIVATE_MEMBER_TYPE *Block_t)
 		return &Private_t->Params_t;
 }
 
-//从主机获取消息并将消息存入消息缓冲区
+//从主机获取消息并将消息存入到消息缓冲区
 bool GetHostData(PRIVATE_MEMBER_TYPE *Block_t)
 {
 		static PrivateBlock *Private_t = NULL;
@@ -216,16 +282,3 @@ void SlaveDataPrepare(PRIVATE_MEMBER_TYPE *Block_t, uint8_t *pData, uint8_t iDat
 				break;
 		}	
 }
-
-//下位机数据写入缓冲区中
-void WriteSendBuffer(CommunicationBlock *Block_t, uint8_t *pData, uint8_t iDataLen)
-{
-		if(NULL == Block_t)
-		{
-				return;
-		}
-		
-		CAN_WriteSendBuffer(&Block_t->SendBlock_t, pData, iDataLen);	
-}
-
-

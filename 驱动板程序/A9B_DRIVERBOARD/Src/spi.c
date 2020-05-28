@@ -24,25 +24,25 @@
 
 /* USER CODE END 0 */
 
-SPI_HandleTypeDef hspi2;
+//SPI_HandleTypeDef hspi2;
 
 /* SPI2 init function */
-void MX_SPI2_Init(void)
+void MX_SPI_Init(SPI_HandleTypeDef hSPI, SPI_TypeDef *SPI_t)
 {
 
-  hspi2.Instance = SPI2;
-  hspi2.Init.Mode = SPI_MODE_MASTER;
-  hspi2.Init.Direction = SPI_DIRECTION_2LINES;
-  hspi2.Init.DataSize = SPI_DATASIZE_8BIT;
-  hspi2.Init.CLKPolarity = SPI_POLARITY_LOW;
-  hspi2.Init.CLKPhase = SPI_PHASE_1EDGE;
-  hspi2.Init.NSS = SPI_NSS_SOFT;
-  hspi2.Init.BaudRatePrescaler = SPI_BAUDRATEPRESCALER_16;
-  hspi2.Init.FirstBit = SPI_FIRSTBIT_MSB;
-  hspi2.Init.TIMode = SPI_TIMODE_DISABLE;
-  hspi2.Init.CRCCalculation = SPI_CRCCALCULATION_DISABLE;
-  hspi2.Init.CRCPolynomial = 10;
-  if (HAL_SPI_Init(&hspi2) != HAL_OK)
+  hSPI.Instance = SPI_t;
+  hSPI.Init.Mode = SPI_MODE_MASTER;
+  hSPI.Init.Direction = SPI_DIRECTION_2LINES;
+  hSPI.Init.DataSize = SPI_DATASIZE_8BIT;
+  hSPI.Init.CLKPolarity = SPI_POLARITY_LOW;
+  hSPI.Init.CLKPhase = SPI_PHASE_1EDGE;
+  hSPI.Init.NSS = SPI_NSS_SOFT;
+  hSPI.Init.BaudRatePrescaler = SPI_BAUDRATEPRESCALER_16;
+  hSPI.Init.FirstBit = SPI_FIRSTBIT_MSB;
+  hSPI.Init.TIMode = SPI_TIMODE_DISABLE;
+  hSPI.Init.CRCCalculation = SPI_CRCCALCULATION_DISABLE;
+  hSPI.Init.CRCPolynomial = 10;
+  if (HAL_SPI_Init(&hSPI) != HAL_OK)
   {
     Error_Handler();
   }
