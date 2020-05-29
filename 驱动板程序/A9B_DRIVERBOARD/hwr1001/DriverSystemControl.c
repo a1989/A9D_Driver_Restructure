@@ -7,9 +7,9 @@
 
 /*系统功能分为三大部分:通信, 运动控制, 存储*/
 //运动控制块,包含所有运动相关的操作, 使用前必须使用MotionBlockInit()初始化
-MotionManageBlock g_SingleAxis_t;
-CommunicationBlock g_BlockCAN1_t;
-StorageDataBlock g_StorageDataBlock_t;
+MotionManageBlock 	g_SingleAxis_t;
+CommunicationBlock 	g_BlockCAN1_t;
+StorageDataBlock 	g_StorageDataBlock_t;
 
 //驱动系统的信息
 struct DevInfo
@@ -22,6 +22,8 @@ struct DevInfo
 //初始化所用到的数据结构
 void DataStructureInit(void)
 {
+		MotorParams MotorParams_t;
+		StepperSysParams StepperSysParams_t;
 		CommunicationParams ParamsCAN1;
 		uint32_t iStdId = 0x0;
 		DriverBoardInfo.iMajorVersion = VERSION_MAJOR;
@@ -31,11 +33,30 @@ void DataStructureInit(void)
 		{
 				Delay_ms(2000);
 		}
-	
-		while(!MotionBlockInit(&MotionBlock_t))
+			
+		while(!MotionBlockInit(&g_SingleAxis_t))
 		{
 				Delay_ms(2000);
 		}
+		
+		#if HARDWARE_VERSION == CHENGDU_DESIGN
+				//配置电机参数
+				MotorParams_t.iMotorID = 0;
+				MotorParams_t.eMotorType = eSTEPPER_ENCODER;
+				StepperSysParams_t.StepperParams_t.eConfigMode = eSPI1;
+				StepperSysParams_t.StepperParams_t.eDriver = eDRV8711;
+				StepperSysParams_t.StepperParams_t.eMotorTIM = eTIM2;
+				StepperSysParams_t.EncoderParmas_t.eEncoderTIM = eTIM3;
+				StepperSysParams_t.EncoderParmas_t.iEncoderLines = ;
+				StepperSysParams_t.EncoderParmas_t.iMultiplication = ;
+
+				
+				MotorParams_t.MotorSysParams = &StepperSysParams_t;
+				//新增一个电机
+				g_SingleAxis_t.m_pAddMotor(g_SingleAxis_t.m_pThisPrivate, &MotorParams_t);
+		#elif HARDWARE_VERSION == SHENZHEN_DESIGN_V1
+				
+		#endif
 		
 		ParamsCAN1.eType = eCAN1;
 		ParamsCAN1.pParam = &iStdId;
@@ -134,7 +155,7 @@ void CommandFromHostHandler(void)
 void HeartBeatHandler(uint8_t *pData)
 {
 		uint8_t iData = HEART_BEAT_DATA;
-		BlockCAN1_t.m_pSlaveDataPrepare(BlockCAN1_t.m_pThisPrivate, &iData, 1);
+		g_BlockCAN1_t.m_pSlaveDataPrepare(g_BlockCAN1_t.m_pThisPrivate, &iData, 1);
 }
 
 //解析消息类型

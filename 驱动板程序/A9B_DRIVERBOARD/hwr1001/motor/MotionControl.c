@@ -3,18 +3,11 @@
 
 #define MOTION_TYPE_NAME	"MotionTypedef"
 
+//本模块的私有部分,用于控制电机,扩展后可用于控制气缸,电缸,电磁铁等运动机构
 typedef struct
 {
-		MotorBlock *MotorBlock_t;
-		MotorBlock *BlockNext;
-}MotorList;
-
-typedef struct
-{
-		MotionParams Params_t;
-		void *pInterface;
+		MotorControl *pMotorControl_t;
 		char *strType;
-		MotorList MotorList_t;
 }PrivateBlock;
 
 //分布式控制时, 根据板ID确定当前控制的是哪个轴
@@ -38,17 +31,12 @@ static void SetAxisIndex(const uint8_t iBoardID, AxisEnum *iAxisIndex)
 		}
 }
 
-void SetMotionData(float fDiatance, float fSpeed)
-{
-		
-}
-
 //运动控制块初始化
-bool MotionBlockInit(MotionManageBlock *Block_t, MotionParams *Params_t)
+bool MotionBlockInit(MotionManageBlock *Block_t)
 {
 		PrivateBlock *pPrivate_t = NULL;
 	
-		if(NULL == Block_t || NULL == Params_t)
+		if(NULL == Block_t)
 		{
 				printf("\r\nfunc:%s:block null pointer", __FUNCTION__);
 				return false;
@@ -57,24 +45,32 @@ bool MotionBlockInit(MotionManageBlock *Block_t, MotionParams *Params_t)
 		pPrivate_t = (PrivateBlock *)malloc(sizeof(PrivateBlock));
 		
 		pPrivate_t->strType = MOTION_TYPE_NAME;
+		pPrivate_t->pMotorControl_t = (MotorControl *)malloc(sizeof(MotorControl));
 		
-		Block_t->m_pSetMotionData = SetMotionData;
-		Block_t->m_pHomeAxis = HomeAxis;
-		Block_t->m_pThis = Block_t;
+		Block_t->m_pThisPrivate = pPrivate_t;
 		
 		return true;
 }
 
 //添加一个电机
-void AddMotor(PRIVATE_MEMBER_TYPE *m_pThisPrivate, MotorParams *Params_t)
+void AddMotor(PRIVATE_MEMBER_TYPE *pThisPrivate, MotorParams *Params_t)
 {
 		PrivateBlock *pPrivate_t = NULL;
 	
-		if(NULL == m_pThisPrivate || NULL == Params_t)
+		if(NULL == pThisPrivate || NULL == Params_t)
 		{
 				printf("\r\nfunc:%s:block null pointer", __FUNCTION__);
 				return;
-		}				
+		}		
+
+		pPrivate_t = (PrivateBlock *)pThisPrivate;
+		
+		pPrivate_t->pMotorControl_t->m_pAddMotor(pPrivate_t->pMotorControl_t->m_pThisPrivate, Params_t);
+}
+
+static void HomeSingleAxisImmediately()
+{
+		
 }
 
 static void HomeAxis(struct MotionBlock *pThis, MoveParams *Params_t)

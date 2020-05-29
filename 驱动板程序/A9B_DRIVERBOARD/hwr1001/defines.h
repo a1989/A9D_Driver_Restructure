@@ -35,11 +35,11 @@ typedef enum
 
 typedef enum
 {
-	MOTOR_DEFAULT = 0,
-	STEPPER,
-	STEPPER_ENCODER,
-	BRUSHLESS,
-	BRUSHLESS_ENCODER
+	eMOTOR_DEFAULT = 0,
+	eSTEPPER,
+	eSTEPPER_ENCODER,
+	eBRUSHLESS,
+	eBRUSHLESS_ENCODER
 }MotorType;
 
 typedef enum 
@@ -63,15 +63,63 @@ typedef struct
 
 typedef enum
 {
-		eSPI1 = 0,
+		eIO = 0,
+		eSPI1,
 		eSPI2
-}DriverMode;
+}DriverConfigMode;
 
 typedef enum
 {
-		eDRV8711 = 0,
+		eNO_DRIVER = 0,
+		eDRV8711,
 		eTMC2590
-}StepperDriver;
+}MotorDriver;
+
+typedef enum
+{
+		eTIM1 = 0,
+		eTIM2,
+		eTIM3,
+		eTIM4
+}PulseTIM;
+
+typedef struct
+{
+		PulseTIM eEncoderTIM;
+		uint32_t iEncoderLines;
+		uint8_t iMultiplication;
+}EncoderParmas;
+
+typedef struct
+{
+		MotorDriver eDriver;
+		DriverConfigMode eConfigMode;
+		uint16_t iSubdivision;
+		PulseTIM eMotorTIM;
+		float fCurrent;		
+}StepperParams;
+
+typedef struct
+{
+		StepperParams StepperParams_t;
+		EncoderParmas EncoderParmas_t;
+}StepperSysParams;
+
+typedef struct
+{
+		uint8_t iMotorID;
+		MotorType eMotorType;				
+		void *MotorSysParams;
+}MotorParams;
+
+typedef struct
+{
+		uint8_t	iAxisNum;
+		uint8_t *iMotorID;
+		float *fTarget;
+		float *fSpeed;
+		
+}MotorMovementBlock;
 
 typedef union
 {

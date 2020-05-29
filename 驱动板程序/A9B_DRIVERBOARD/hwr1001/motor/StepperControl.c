@@ -1,5 +1,5 @@
 #include "StepperControl.h"
-#include "DRV8711.h"
+#include "DRV8711_Operation.h"
 
 typedef struct
 {
@@ -31,18 +31,18 @@ const uint16_t arrSpeedTable[ACC_TIME_DIVISION][2] = {
 {9950,199}
 };
 
-void SingleEncoderStepperPrepare(AxisEnum eAxisIndex, float fDistance, float fSpeed)
+void SingleStepperPrepare(AxisEnum eAxisIndex, float fDistance, float fSpeed)
 {
 		
 }
 
-void StepperControlInit(StepperControl *Stepper_t, DriverParams *Params_t)
+void StepperControlInit(StepperControl *pStepper_t, StepperParams *pParams_t)
 {
 		PrivateBlock *pPrivate = NULL;
 		DRV8711_Block *pDRV8711 = NULL;
 		DRV8711_Params *pDRV8711_Params = NULL;
 	
-		if(NULL == Stepper_t)
+		if(NULL == pStepper_t)
 		{
 				printf("\r\nfunc:%s, error:Null Pointer", __FUNCTION__);				
 				return;
@@ -50,11 +50,11 @@ void StepperControlInit(StepperControl *Stepper_t, DriverParams *Params_t)
 		
 		pPrivate = (PrivateBlock *)malloc(sizeof(PrivateBlock));
 		
-		switch(Params_t->eDriver)
+		switch(pParams_t->eDriver)
 		{
 				case eDRV8711:					
 					pDRV8711 = (DRV8711_Block *)malloc(sizeof(DRV8711_Block));
-					pDRV8711_Params->eMode = Params_t->eMode;
+					pDRV8711_Params->eMode = pParams_t->eConfigMode;
 					DRV8711_Init(pDRV8711->m_pThisPrivate, pDRV8711_Params);
 					break;
 				case eTMC2590:

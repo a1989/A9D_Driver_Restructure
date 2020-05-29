@@ -1,14 +1,24 @@
 #include "MotorControl.h"
 #include "StepperControl.h"
+#include "IncEncoderControl.h"
 
 #define POSITIVE_DIRECTION	1		//正方向
 #define NEGTIVE_DIRECTION		-1	//负方向
 
 /*本模块类型定义*/
+typedef struct structMotorList
+{
+		uint8_t iMotorID;
+		void *pMotor_t;
+		void *pEncoder_t;
+		struct structMotorList *pNext_t;
+}MortorList;
+
 typedef struct
 {
-		StepperControl Stepper_t;
-}MotorControl;
+		MortorList *pMotorList;
+		char *strType;
+}PrivateBlock;
 
 //每个运动单节点的参数
 typedef struct
@@ -44,8 +54,6 @@ typedef struct
 		uint8_t iReadIndex;
 		//缓存区长度
 		uint8_t iBufferLen;
-	
-		MotorControl MotorControl_t;
 }MoveNode_t;
 /*本模块类型定义End*/
 
@@ -61,17 +69,75 @@ MoveNode_t *MallocMoveNode_t(void)
 		return pNode_t;
 }
 
-void MotorBlockInit(MoveBlock *Block_t)
+void MotorControlInit(MotorControl *Block_t)
 {
 		//结构体指针指向初始化的内存区域
-		MoveNode_t *Node_t = MallocMoveNode_t();
-		StepperControlInit(&Node_t->MotorControl_t.Stepper_t);
+		PrivateBlock *pPrivate_t = (PrivateBlock *)malloc(sizeof(PrivateBlock));
 	
-		//赋值给上层MoveBlock的私有结构指针
-		Block_t->m_pThisPrivate = Node_t;
+		if(NULL == pPrivate_t)
+		{
+				printf("\r\nfunc:%s:block null pointer", __FUNCTION__);
+				return;
+		}			
 }
 
-
+void AddMotor(PRIVATE_MEMBER_TYPE *pThisPrivate, MotorParams *pParams_t)
+{
+		StepperControl *pStepper_t = NULL;
+		IncEncoderControl *pIncEncoder_t = NULL;
+		StepperSysParams *pStepperSysParams_t = NULL;
+		MortorList *pList = NULL;
+		MortorList *pNode = NULL;
+	
+		PrivateBlock *pPrivate_t = NULL;
+		
+		if(NULL == pThisPrivate)
+		{
+				printf("\r\nfunc:%s:block null pointer", __FUNCTION__);
+				return;
+		}		
+		
+		pPrivate_t = (PrivateBlock *)pThisPrivate;
+				
+		switch(pParams_t->eMotorType)
+		{
+				case eSTEPPER_ENCODER:
+					//初始化步进电机
+					pStepper_t = (StepperControl *)malloc(sizeof(StepperControl));
+					pStepperSysParams_t = (StepperSysParams *)pParams_t->MotorSysParams;
+					StepperControlInit(pStepper_t, &pStepperSysParams_t->StepperParams_t);
+					//初始化编码器
+					pIncEncoder_t = (IncEncoderControl *)malloc(sizeof(IncEncoderControl));
+					IncEncoderControlInit(pIncEncoder_t, &pStepperSysParams_t->EncoderParmas_t);
+					break;
+				default:
+					break;
+		}
+		
+		pList = (MortorList *)malloc(sizeof(MortorList));
+		if(NULL == pList)
+		{
+				return;
+		}
+		pList->pMotor_t = pStepper_t;
+		pList->pEncoder_t = pIncEncoder_t;
+		pList->pNext_t = NULL;
+		
+		if(NULL == pPrivate_t->pMotorList)
+		{
+				pPrivate_t->pMotorList = pList;
+		}
+		else
+		{
+				pNode = pPrivate_t->pMotorList;	
+				while(pNode->pNext_t != NULL)
+				{
+						pNode = pNode->pNext_t;
+				}
+				
+				pNode->pNext_t = pList;
+		}
+}
 
 void PushData(MoveNode_t *Node_t, MoveNodeParams *Params_t)
 {
