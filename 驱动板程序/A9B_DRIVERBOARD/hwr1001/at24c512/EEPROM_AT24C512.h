@@ -1,10 +1,17 @@
 #ifndef __EEPROM_AT24C512_H__
 #define __EEPROM_AT24C512_H__
 
-#include "i2c.h"
+#include "defines.h"
 
-void AT24C512_Init(void);
-HAL_StatusTypeDef AT24C512_WriteByte(uint16_t iAddress, uint8_t iData);
-HAL_StatusTypeDef AT24C512_ReadByte(uint16_t iAddress, uint8_t *iData);
+
+
+typedef struct
+{
+		PRIVATE_MEMBER_TYPE *m_pThisPrivate;
+		bool (*m_pAT24C512_WriteByte)(PRIVATE_MEMBER_TYPE *pThis, StorageByteOptions *Params_t);
+		bool (*m_pAT24C512_ReadByte)(PRIVATE_MEMBER_TYPE *pThis, StorageByteOptions *Params_t);
+}AT24C512_Control;
+
+void AT24C512_Init(PRIVATE_MEMBER_TYPE *pThis, DriverConfigMode eMode);
 
 #endif

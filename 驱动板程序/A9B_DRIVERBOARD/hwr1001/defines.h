@@ -4,6 +4,7 @@
 #include "DriverBoardConfig.h"
 #include <string.h>
 #include "stm32f1xx_hal.h"
+#include "i2c.h"
 
 #define PRIVATE_MEMBER_TYPE		void
 #define VOID_HandleTypeDef		void
@@ -65,7 +66,9 @@ typedef enum
 {
 		eIO = 0,
 		eSPI1,
-		eSPI2
+		eSPI2,
+		eI2C1,
+		eI2C2
 }DriverConfigMode;
 
 typedef enum
@@ -120,6 +123,26 @@ typedef struct
 		float *fSpeed;
 		
 }MotorMovementBlock;
+
+typedef enum
+{
+		eAT24C512 = 0,
+		eAT93C66b
+}StorageDevice;
+
+typedef struct
+{
+		uint8_t iID;
+		DriverConfigMode eStorageMode;
+		StorageDevice eStorageDevice;
+}StorageParams;
+
+typedef struct
+{
+		uint16_t iAddress;
+		uint8_t iData;
+		HAL_StatusTypeDef eStatus;
+}StorageByteOptions;
 
 typedef union
 {

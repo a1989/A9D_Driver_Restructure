@@ -1,3 +1,27 @@
+////////////////////////////////////////////////////////////////////
+//                          _ooOoo_                               //
+//                         o8888888o                              //
+//                         88" . "88                              //
+//                         (| ^_^ |)                              //
+//                         O\  =  /O                              //
+//                      ____/`---'\____                           //
+//                    .'  \\|     |//  `.                         //
+//                   /  \\|||  :  |||//  \                        //
+//                  /  _||||| -:- |||||-  \                       //
+//                  |   | \\\  -  /// |   |                       //
+//                  | \_|  ''\---/''  |   |                       //
+//                  \  .-\__  `-`  ___/-. /                       //
+//                ___`. .'  /--.--\  `. . ___                     //
+//              ."" '<  `.___\_<|>_/___.'  >'"".                  //
+//            | | :  `- \`.;`\ _ /`;.`/ - ` : | |                 //
+//            \  \ `-.   \_ __\ /__ _/   .-` /  /                 //
+//      ========`-.____`-.___\_____/___.-`____.-'========         //
+//                           `=---='                              //
+//      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^        //
+//         					佛祖保佑       永无BUG                      	//
+////////////////////////////////////////////////////////////////////
+
+
 #include "DriverSystemControl.h"
 #include "MotionControl.h"
 #include "Hardware.h"
@@ -9,7 +33,7 @@
 //运动控制块,包含所有运动相关的操作, 使用前必须使用MotionBlockInit()初始化
 MotionManageBlock 	g_SingleAxis_t;
 CommunicationBlock 	g_BlockCAN1_t;
-StorageDataBlock 	g_StorageDataBlock_t;
+StorageControl 	g_StorageDataBlock_t;
 
 //驱动系统的信息
 struct DevInfo
@@ -25,15 +49,24 @@ void DataStructureInit(void)
 		MotorParams MotorParams_t;
 		StepperSysParams StepperSysParams_t;
 		CommunicationParams ParamsCAN1;
+		StorageParams StorageParams_t;
 		uint32_t iStdId = 0x0;
 		DriverBoardInfo.iMajorVersion = VERSION_MAJOR;
 		DriverBoardInfo.iMinorVersion = VERSION_MINOR;
 	
-		while(!StorageBlockInit(&StorageDataBlock_t))
+		while(!StorageBlockInit(&g_StorageDataBlock_t))
 		{
 				Delay_ms(2000);
 		}
-			
+		
+		#if HARDWARE_VERSION == CHENGDU_DESIGN
+				StorageParams_t.eStorageDevice = eAT24C512;
+				StorageParams_t.eStorageMode = eI2C2;
+				g_StorageDataBlock_t.m_pAddDevice(g_StorageDataBlock_t.m_pThisPrivate, &StorageParams_t);
+		#elif HARDWARE_VERSION == SHENZHEN_DESIGN_V1
+				
+		#endif	
+		
 		while(!MotionBlockInit(&g_SingleAxis_t))
 		{
 				Delay_ms(2000);

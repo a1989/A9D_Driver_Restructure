@@ -24,22 +24,22 @@
 
 /* USER CODE END 0 */
 
-I2C_HandleTypeDef hi2c2;
+//I2C_HandleTypeDef hi2c2;
 
 /* I2C2 init function */
-void MX_I2C2_Init(void)
+void MX_I2C_Init(I2C_HandleTypeDef hI2C, I2C_TypeDef *I2C_t)
 {
 
-  hi2c2.Instance = I2C2;
-  hi2c2.Init.ClockSpeed = 10000;
-  hi2c2.Init.DutyCycle = I2C_DUTYCYCLE_2;
-  hi2c2.Init.OwnAddress1 = 0;
-  hi2c2.Init.AddressingMode = I2C_ADDRESSINGMODE_7BIT;
-  hi2c2.Init.DualAddressMode = I2C_DUALADDRESS_DISABLE;
-  hi2c2.Init.OwnAddress2 = 0;
-  hi2c2.Init.GeneralCallMode = I2C_GENERALCALL_DISABLE;
-  hi2c2.Init.NoStretchMode = I2C_NOSTRETCH_DISABLE;
-  if (HAL_I2C_Init(&hi2c2) != HAL_OK)
+  hI2C.Instance = I2C_t;
+  hI2C.Init.ClockSpeed = 10000;
+  hI2C.Init.DutyCycle = I2C_DUTYCYCLE_2;
+  hI2C.Init.OwnAddress1 = 0;
+  hI2C.Init.AddressingMode = I2C_ADDRESSINGMODE_7BIT;
+  hI2C.Init.DualAddressMode = I2C_DUALADDRESS_DISABLE;
+  hI2C.Init.OwnAddress2 = 0;
+  hI2C.Init.GeneralCallMode = I2C_GENERALCALL_DISABLE;
+  hI2C.Init.NoStretchMode = I2C_NOSTRETCH_DISABLE;
+  if (HAL_I2C_Init(&hI2C) != HAL_OK)
   {
     Error_Handler();
   }

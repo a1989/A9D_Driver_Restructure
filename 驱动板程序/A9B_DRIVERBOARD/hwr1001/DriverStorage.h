@@ -1,17 +1,17 @@
 #ifndef __DRIVERSTORAGE_H__
 #define __DRIVERSTORAGE_H__
 
-#include "DriverBoardConfig.h"
+#include "defines.h"
 
 typedef struct
 {
-		uint8_t iSubdivisionCfg;
-		uint8_t iCurrentCfg;
-		uint8_t iDriverID;
-}StorageDataBlock;
+		PRIVATE_MEMBER_TYPE *m_pThisPrivate;
+		
+		void (*m_pAddDevice)(PRIVATE_MEMBER_TYPE *pThis, StorageParams *pParams_t);
+		bool (*m_pEEPROM_ReadByte)(PRIVATE_MEMBER_TYPE *pThis, EEPROM_Params *pParams_t);
+		bool (*m_pEEPROM_WriteByte)(PRIVATE_MEMBER_TYPE *pThis, EEPROM_Params *pParams_t);
+}StorageControl;
 
-bool StorageBlockInit(StorageDataBlock *Block_t);
-bool GetDriverInfo(StorageDataBlock *Block_t);
-void WriteDriverInfo(StorageDataBlock *Block_t);
+bool StorageBlockInit(StorageControl *Block_t);
 	
 #endif
