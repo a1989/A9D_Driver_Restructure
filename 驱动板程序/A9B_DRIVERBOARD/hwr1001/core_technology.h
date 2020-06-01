@@ -5,7 +5,7 @@
 #include "stm32f1xx_hal.h"
 
 //定义打印串口
-#define Uart_Handle huart1
+//#define Uart_Handle huart1
 #define max(a, b)           (a>b? a:b)  
 #define min(a, b)           (a<b? a:b)  
 #define limiter(x, a, b)      (min(max(x, a), b))  

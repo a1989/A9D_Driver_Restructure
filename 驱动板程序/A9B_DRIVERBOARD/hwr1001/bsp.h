@@ -10,10 +10,10 @@ typedef struct
 		uint8_t iID;
 }BasicParams_t;
 
-typedef struct
-{
-		
-}BSP_Init_t;
+//typedef struct
+//{
+//		
+//}BSP_Init_t;
 
 void BSP_Initializes(void);
 

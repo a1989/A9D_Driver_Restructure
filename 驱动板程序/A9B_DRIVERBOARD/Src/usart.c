@@ -24,27 +24,29 @@
 
 /* USER CODE END 0 */
 
-UART_HandleTypeDef huart1;
-DMA_HandleTypeDef hdma_usart1_tx;
+//UART_HandleTypeDef huart1;
+//DMA_HandleTypeDef hdma_usart1_tx;
+
+USART_Handle	USART_Handle_t;
 
 /* USART1 init function */
 
 void MX_USART1_UART_Init(void)
 {
 
-  huart1.Instance = USART1;
-  huart1.Init.BaudRate = 115200;
-  huart1.Init.WordLength = UART_WORDLENGTH_8B;
-  huart1.Init.StopBits = UART_STOPBITS_1;
-  huart1.Init.Parity = UART_PARITY_NONE;
-  huart1.Init.Mode = UART_MODE_TX_RX;
-  huart1.Init.HwFlowCtl = UART_HWCONTROL_NONE;
-  huart1.Init.OverSampling = UART_OVERSAMPLING_16;
-  if (HAL_UART_Init(&huart1) != HAL_OK)
+  USART_Handle_t.hUART.Instance = USART1;
+  USART_Handle_t.hUART.Init.BaudRate = 115200;
+  USART_Handle_t.hUART.Init.WordLength = UART_WORDLENGTH_8B;
+  USART_Handle_t.hUART.Init.StopBits = UART_STOPBITS_1;
+  USART_Handle_t.hUART.Init.Parity = UART_PARITY_NONE;
+  USART_Handle_t.hUART.Init.Mode = UART_MODE_TX_RX;
+  USART_Handle_t.hUART.Init.HwFlowCtl = UART_HWCONTROL_NONE;
+  USART_Handle_t.hUART.Init.OverSampling = UART_OVERSAMPLING_16;
+  if (HAL_UART_Init(&USART_Handle_t.hUART) != HAL_OK)
   {
     Error_Handler();
   }
-
+	
 }
 
 void HAL_UART_MspInit(UART_HandleTypeDef* uartHandle)
@@ -76,20 +78,20 @@ void HAL_UART_MspInit(UART_HandleTypeDef* uartHandle)
 
     /* USART1 DMA Init */
     /* USART1_TX Init */
-    hdma_usart1_tx.Instance = DMA1_Channel4;
-    hdma_usart1_tx.Init.Direction = DMA_MEMORY_TO_PERIPH;
-    hdma_usart1_tx.Init.PeriphInc = DMA_PINC_DISABLE;
-    hdma_usart1_tx.Init.MemInc = DMA_MINC_ENABLE;
-    hdma_usart1_tx.Init.PeriphDataAlignment = DMA_PDATAALIGN_BYTE;
-    hdma_usart1_tx.Init.MemDataAlignment = DMA_MDATAALIGN_BYTE;
-    hdma_usart1_tx.Init.Mode = DMA_NORMAL;
-    hdma_usart1_tx.Init.Priority = DMA_PRIORITY_MEDIUM;
-    if (HAL_DMA_Init(&hdma_usart1_tx) != HAL_OK)
+    USART_Handle_t.hUSART_DMA.Instance = DMA1_Channel4;
+    USART_Handle_t.hUSART_DMA.Init.Direction = DMA_MEMORY_TO_PERIPH;
+    USART_Handle_t.hUSART_DMA.Init.PeriphInc = DMA_PINC_DISABLE;
+    USART_Handle_t.hUSART_DMA.Init.MemInc = DMA_MINC_ENABLE;
+    USART_Handle_t.hUSART_DMA.Init.PeriphDataAlignment = DMA_PDATAALIGN_BYTE;
+    USART_Handle_t.hUSART_DMA.Init.MemDataAlignment = DMA_MDATAALIGN_BYTE;
+    USART_Handle_t.hUSART_DMA.Init.Mode = DMA_NORMAL;
+    USART_Handle_t.hUSART_DMA.Init.Priority = DMA_PRIORITY_MEDIUM;
+    if (HAL_DMA_Init(&USART_Handle_t.hUSART_DMA) != HAL_OK)
     {
       Error_Handler();
     }
 
-    __HAL_LINKDMA(uartHandle,hdmatx,hdma_usart1_tx);
+    __HAL_LINKDMA(uartHandle,hdmatx,USART_Handle_t.hUSART_DMA);
 
   /* USER CODE BEGIN USART1_MspInit 1 */
 
@@ -124,6 +126,20 @@ void HAL_UART_MspDeInit(UART_HandleTypeDef* uartHandle)
   /* USER CODE END USART1_MspDeInit 1 */
   }
 } 
+
+int fputc (int ch, FILE *f)
+{
+    /* 发送一个字节数据到串口RS232_USART */
+    HAL_UART_Transmit (&USART_Handle_t.hUART, (uint8_t *)&ch, 1, 1000);
+    return (ch);
+}
+
+int fgetc (FILE *f)
+{
+    int ch;
+    HAL_UART_Receive (&USART_Handle_t.hUART, (uint8_t *)&ch, 1, 1000);
+    return (ch);
+}
 
 /* USER CODE BEGIN 1 */
 

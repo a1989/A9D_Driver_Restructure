@@ -30,6 +30,13 @@
 
 /* USER CODE END Includes */
 
+typedef struct
+{
+		DMA_HandleTypeDef hUSART_DMA;
+		UART_HandleTypeDef hUART;
+		uint8_t chReceiveByte;
+}USART_Handle;
+
 extern UART_HandleTypeDef huart1;
 
 /* USER CODE BEGIN Private defines */

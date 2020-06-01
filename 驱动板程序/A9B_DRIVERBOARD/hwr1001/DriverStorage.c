@@ -1,6 +1,6 @@
 #include "DriverStorage.h"
-
 #include "EEPROM_AT24C512.h"
+#include <stdlib.h>
 
 typedef struct structStorageList
 {
@@ -13,12 +13,6 @@ typedef struct
 {
 		StorageList *pStorageList;
 }PrivateBlock;
-
-bool StorageBlockInit(StorageControl *Block_t)
-{
-		Block_t->m_pThisPrivate = (PrivateBlock *)malloc(sizeof(PrivateBlock));
-		
-}
 
 void AddDevice(PRIVATE_MEMBER_TYPE *pThisPrivate, StorageParams *pParams_t)
 {
@@ -40,8 +34,13 @@ void AddDevice(PRIVATE_MEMBER_TYPE *pThisPrivate, StorageParams *pParams_t)
 		{
 				case eAT24C512:
 					//³õÊ¼»¯at24c512
+					printf("\r\nAT24C512 start Init");
 					AT24C512_Control_t = (AT24C512_Control *)malloc(sizeof(AT24C512_Control));
-					AT24C512_Init(AT24C512_Control_t->m_pThisPrivate, pParams_t->eStorageMode);
+					if(NULL == AT24C512_Control_t)
+					{
+							printf("\r\nfunc:%s:AT24C512 malloc failed", __FUNCTION__);
+					}
+					AT24C512_Init(AT24C512_Control_t, pParams_t->eStorageMode, pParams_t->iHardwareAddress);
 					pDevice = AT24C512_Control_t;
 					break;
 				default:
@@ -89,17 +88,22 @@ bool StorageReadByte(PRIVATE_MEMBER_TYPE *pThisPrivate, StorageParams *pParams_t
 		pPrivate_t = (PrivateBlock *)pThisPrivate;	
 		if(pPrivate_t->pStorageList == NULL)
 		{
+				printf("\r\nfunc:%s:no device in the list", __FUNCTION__);
 				return false;
 		}
 		
+		DEBUG_LOG("\r\nStart Read Byte")
+		
 		pNode = pPrivate_t->pStorageList;
-		while(pNode->pNext_t != NULL)
+
+		do
 		{
 				if(pParams_t->iID == pNode->iStorageID)
 				{
 						switch(pParams_t->eStorageDevice)
 						{
 								case eAT24C512:
+									printf("\r\nStart Read AT24C512");
 									AT24C512_Control_t = (AT24C512_Control *)pNode->pStorage;
 									AT24C512_Control_t->m_pAT24C512_ReadByte(AT24C512_Control_t->m_pThisPrivate, pOps_t);
 									break;
@@ -108,7 +112,8 @@ bool StorageReadByte(PRIVATE_MEMBER_TYPE *pThisPrivate, StorageParams *pParams_t
 						}
 						return true;
 				}
-		}
+				pNode = pNode->pNext_t;
+		}while(pNode != NULL);
 		
 		return false;
 }
@@ -131,8 +136,10 @@ bool StorageWriteByte(PRIVATE_MEMBER_TYPE *pThisPrivate, StorageParams *pParams_
 				return false;
 		}
 		
+		DEBUG_LOG("\r\nStart Write Byte")
+		
 		pNode = pPrivate_t->pStorageList;
-		while(pNode->pNext_t != NULL)
+		do
 		{
 				if(pParams_t->iID == pNode->iStorageID)
 				{
@@ -140,14 +147,29 @@ bool StorageWriteByte(PRIVATE_MEMBER_TYPE *pThisPrivate, StorageParams *pParams_
 						{
 								case eAT24C512:
 									AT24C512_Control_t = (AT24C512_Control *)pNode->pStorage;
-									AT24C512_Control_t->m_pAT24C512_ReadByte(AT24C512_Control_t->m_pThisPrivate, pOps_t);
+									AT24C512_Control_t->m_pAT24C512_WriteByte(AT24C512_Control_t->m_pThisPrivate, pOps_t);
 									break;
 								default:
 									break;
 						}
 						return true;
 				}
-		}
+				pNode = pNode->pNext_t;
+		}while(pNode != NULL);
 		
 		return false;	
+}
+
+bool StorageBlockInit(StorageControl *Block_t)
+{
+		if(NULL == Block_t)
+		{
+				printf("\r\nfunc:%s:block null pointer", __FUNCTION__);
+				return false;
+		}		
+		
+		Block_t->m_pThisPrivate = (PrivateBlock *)malloc(sizeof(PrivateBlock));
+		Block_t->m_pStorageReadByte = StorageReadByte;
+		Block_t->m_pStorageWriteByte = StorageWriteByte;
+		Block_t->m_pAddDevice = AddDevice;
 }

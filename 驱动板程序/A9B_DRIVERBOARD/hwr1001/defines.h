@@ -1,14 +1,21 @@
 #ifndef __DEFINES_H__
 #define __DEFINES_H__
 
+//#include <stdlib.h>
 #include "DriverBoardConfig.h"
 #include <string.h>
-#include "stm32f1xx_hal.h"
+#include "delay.h"
 #include "i2c.h"
 
 #define PRIVATE_MEMBER_TYPE		void
 #define VOID_HandleTypeDef		void
 #define IS_DATA_TYPE_CORRECT(strParams1, strParams2)		(!strcmp(strParams1, strParams2))
+
+#define DEBUG_LOG_ENABLE	1
+#define DEBUG_LOG(strParams, ...)		if(DEBUG_LOG_ENABLE)\
+																		{\
+																				printf(strParams, ##__VA_ARGS__);\
+																		}
 
 typedef enum
 {
@@ -133,6 +140,7 @@ typedef enum
 typedef struct
 {
 		uint8_t iID;
+		uint8_t iHardwareAddress;
 		DriverConfigMode eStorageMode;
 		StorageDevice eStorageDevice;
 }StorageParams;
@@ -160,21 +168,8 @@ typedef union
 #define RZ_AXIS_INDEX		5
 
 #if HARDWARE_VERSION == CHENGDU_DESIGN
-
-	#define X1_AXIS_TIM		htim2
-	#define Y1_AXIS_TIM		htim2
-	#define Z1_AXIS_TIM		htim2
-	#define RX1_AXIS_TIM 	htim2
-	#define RX2_AXIS_TIM	htim2
-	#define RX3_AXIS_TIM	htim2
-
-	#define X2_AXIS_TIM		htim2
-	#define Y2_AXIS_TIM		htim2
-	#define Z2_AXIS_TIM		htim2
-	#define RX2_AXIS_TIM 	htim2
-	#define RX2_AXIS_TIM	htim2
-	#define RX2_AXIS_TIM	htim2
-
+		#define EEPROM_DRIVER_ID_ADDR		0xF0
 #endif
 
 #endif
+

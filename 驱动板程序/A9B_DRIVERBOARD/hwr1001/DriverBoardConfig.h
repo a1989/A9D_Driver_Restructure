@@ -1,9 +1,9 @@
 #ifndef __DRIVERBOARDCONFIG_H__
 #define __DRIVERBOARDCONFIG_H__
 
+//#include <stdlib.h>
 #include <stdbool.h>
 #include <stdio.h>
-#include <stdlib.h>
 
 #define USE_DRV8711	0
 #define USE_TMC2590	1

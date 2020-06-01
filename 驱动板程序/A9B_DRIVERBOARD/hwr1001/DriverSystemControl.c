@@ -28,8 +28,10 @@
 #include "Communication.h"
 #include "Version.h"
 #include "DriverStorage.h"
+#include "dma.h"
+#include "usart.h"
 
-/*系统功能分为三大部分:通信, 运动控制, 存储*/
+/*系统功能分为四大部分:通信, 运动控制, 存储, 硬件操作*/
 //运动控制块,包含所有运动相关的操作, 使用前必须使用MotionBlockInit()初始化
 MotionManageBlock 	g_SingleAxis_t;
 CommunicationBlock 	g_BlockCAN1_t;
@@ -44,12 +46,13 @@ struct DevInfo
 }DriverBoardInfo;
 
 //初始化所用到的数据结构
-void DataStructureInit(void)
+static void DataStructureInit(void)
 {
 		MotorParams MotorParams_t;
 		StepperSysParams StepperSysParams_t;
 		CommunicationParams ParamsCAN1;
 		StorageParams StorageParams_t;
+		StorageByteOptions ByteOptions_t;
 		uint32_t iStdId = 0x0;
 		DriverBoardInfo.iMajorVersion = VERSION_MAJOR;
 		DriverBoardInfo.iMinorVersion = VERSION_MINOR;
@@ -60,12 +63,22 @@ void DataStructureInit(void)
 		}
 		
 		#if HARDWARE_VERSION == CHENGDU_DESIGN
+				//配置存储设备的参数
+				StorageParams_t.iID = 0;
+				StorageParams_t.iHardwareAddress = 0xA0;
 				StorageParams_t.eStorageDevice = eAT24C512;
 				StorageParams_t.eStorageMode = eI2C2;
 				g_StorageDataBlock_t.m_pAddDevice(g_StorageDataBlock_t.m_pThisPrivate, &StorageParams_t);
 		#elif HARDWARE_VERSION == SHENZHEN_DESIGN_V1
 				
 		#endif	
+		Delay_ms(10);
+		ByteOptions_t.iAddress = 0xF0;
+		ByteOptions_t.iData = 0x10;
+		g_StorageDataBlock_t.m_pStorageWriteByte(g_StorageDataBlock_t.m_pThisPrivate, &StorageParams_t, &ByteOptions_t);
+		g_StorageDataBlock_t.m_pStorageReadByte(g_StorageDataBlock_t.m_pThisPrivate, &StorageParams_t, &ByteOptions_t);
+		printf("\r\n%d", ByteOptions_t.iData);
+		return;
 		
 		while(!MotionBlockInit(&g_SingleAxis_t))
 		{
@@ -80,9 +93,8 @@ void DataStructureInit(void)
 				StepperSysParams_t.StepperParams_t.eDriver = eDRV8711;
 				StepperSysParams_t.StepperParams_t.eMotorTIM = eTIM2;
 				StepperSysParams_t.EncoderParmas_t.eEncoderTIM = eTIM3;
-				StepperSysParams_t.EncoderParmas_t.iEncoderLines = ;
-				StepperSysParams_t.EncoderParmas_t.iMultiplication = ;
-
+				StepperSysParams_t.EncoderParmas_t.iEncoderLines = 1000;
+				StepperSysParams_t.EncoderParmas_t.iMultiplication = 4;
 				
 				MotorParams_t.MotorSysParams = &StepperSysParams_t;
 				//新增一个电机
@@ -101,15 +113,24 @@ void DataStructureInit(void)
 
 void DiverSystemInit(void)
 {
-		HardwareConifg();
-		HardwareInit();
+		//串口多用于调试,作为一个独立模块单独初始化
+		#if HARDWARE_VERSION == CHENGDU_DESIGN
+				MX_DMA_Init();
+				MX_USART1_UART_Init();
+		#elif HARDWARE_VERSION == SHENZHEN_DESIGN_V1
+				
+		#endif	
+	
+		Delay_ms(200);		
+		printf("\r\nUSART init success");
+	
 		DataStructureInit();
 }
 
 //处理数据发送
 void DataSendHandler(uint8_t *pData, uint8_t iDataLen)
 {
-		WriteSendBuffer(&CommunicationBlock_t, pData, iDataLen);
+		
 }
 
 //上位机请求数据
@@ -154,35 +175,35 @@ void QueryFromHostHandler(const uint8_t *pRawData)
 }
 
 //上位机命令
-void CommandFromHostHandler(void)
-{
-		switch()
-		{
-			case MOVE:
-				//将运动数据写入运动控制块
-				MotionBlock_t.m_SetMoveData();
-				break;
-			case HOME:
-				SingleAxis_t.m_HomeAxis();
-				break;
-			case BOARD_RESET:
-				break;
-			case EN_TORQUE:
-				MotionBlock_t.m_SetTorque();
-				break;
-			case MOTOR_STOP:
-				MotionBlock_t.m_StopMotor();
-				break;
-			case SET_ID:
-				break;
-			case SET_CURRENT:
-				StructMotionBlock.m_SetCurrent();
-				break;
-			case SET_SUBDIVISION:
-				StructMotionBlock.m_SetSubdivision();
-				break;				
-		}
-}
+//void CommandFromHostHandler(void)
+//{
+//		switch()
+//		{
+//			case MOVE:
+//				//将运动数据写入运动控制块
+//				MotionBlock_t.m_SetMoveData();
+//				break;
+//			case HOME:
+//				SingleAxis_t.m_HomeAxis();
+//				break;
+//			case BOARD_RESET:
+//				break;
+//			case EN_TORQUE:
+//				MotionBlock_t.m_SetTorque();
+//				break;
+//			case MOTOR_STOP:
+//				MotionBlock_t.m_StopMotor();
+//				break;
+//			case SET_ID:
+//				break;
+//			case SET_CURRENT:
+//				StructMotionBlock.m_SetCurrent();
+//				break;
+//			case SET_SUBDIVISION:
+//				StructMotionBlock.m_SetSubdivision();
+//				break;				
+//		}
+//}
 
 //心跳
 void HeartBeatHandler(uint8_t *pData)
@@ -225,62 +246,62 @@ static RecvDataType RecvDataAnalyze(const uint8_t *pRawData, uint8_t *pData, uin
 }
 
 //根据数据做对应的处理
-void ProcessData(uint8_t *pRawData, uint8_t iDataLen)
-{
-		RecvDataType iDataType;
-		static uint8_t pData[16] = {0};
-		bool bClearBuffer = true;
-		if(NULL == pRawData)
-		{
-				printf("\r\nfunc:%s, error:null pointer", __FUNCTION__);
-				return;
-		}
-		iDataType = RecvDataAnalyze(pRawData, pData, iDataLen);
-		switch(iDataType)
-		{
-			case HEARTBEAT:
-				HeartBeatHandler(pData);
-				break;
-			case ASSEMBLE:
-				bClearBuffer = false;
-				break;
-			case QUERY:
-				QueryFromHostHandler(pData);
-				break;
-			case CMD:
-				CommandFromHostHandler();
-				break;
-			case UPDATE:
-				break;
-			case Error:
-				//sprintf();
-				printf("\r\nfunc:%s,Error Data", __FUNCTION__);
-				break;
-		}
-		
-		if(bClearBuffer)
-		{
-				memset(pData, 0, sizeof(pData));
-		}
-}
+//void ProcessData(uint8_t *pRawData, uint8_t iDataLen)
+//{
+//		RecvDataType iDataType;
+//		static uint8_t pData[16] = {0};
+//		bool bClearBuffer = true;
+//		if(NULL == pRawData)
+//		{
+//				printf("\r\nfunc:%s, error:null pointer", __FUNCTION__);
+//				return;
+//		}
+//		iDataType = RecvDataAnalyze(pRawData, pData, iDataLen);
+//		switch(iDataType)
+//		{
+//			case HEARTBEAT:
+//				HeartBeatHandler(pData);
+//				break;
+//			case ASSEMBLE:
+//				bClearBuffer = false;
+//				break;
+//			case QUERY:
+//				QueryFromHostHandler(pData);
+//				break;
+//			case CMD:
+//				CommandFromHostHandler();
+//				break;
+//			case UPDATE:
+//				break;
+//			case Error:
+//				//sprintf();
+//				printf("\r\nfunc:%s,Error Data", __FUNCTION__);
+//				break;
+//		}
+//		
+//		if(bClearBuffer)
+//		{
+//				memset(pData, 0, sizeof(pData));
+//		}
+//}
 
 //主程序
 void DriverSystemRun(void)
 {
-		uint8_t *arrData;
-		uint8_t iDataLen = 0;
-		bool bDataAvailabel;
-	
-		g_BlockCAN1_t.m_pPopMessage(g_BlockCAN1_t.m_pThisPrivate, arrData, &iDataLen, &bDataAvailabel)
-		//如果收到数据就处理数据
-		if(bDataAvailabel)
-		{
-				ProcessData(arrData, iDataLen);
-		}
+//		uint8_t *arrData;
+//		uint8_t iDataLen = 0;
+//		bool bDataAvailabel;
+//	
+//		g_BlockCAN1_t.m_pPopMessage(g_BlockCAN1_t.m_pThisPrivate, arrData, &iDataLen, &bDataAvailabel)
+//		//如果收到数据就处理数据
+//		if(bDataAvailabel)
+//		{
+//				ProcessData(arrData, iDataLen);
+//		}
 		//
-		SlaveDataSend(&CommunicationBlock_t);
+		
 		//根据当前的状态确定LED的闪烁情况
-		LED_ErrorInstruction();
+		//LED_ErrorInstruction();
 		//喂狗
-		FeedWatchDog();
+		//FeedWatchDog();
 }

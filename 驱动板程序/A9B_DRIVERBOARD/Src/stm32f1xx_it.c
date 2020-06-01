@@ -23,6 +23,7 @@
 #include "stm32f1xx_it.h"
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
+#include "usart.h"
 #include "Communication.h"
 /* USER CODE END Includes */
 
@@ -65,8 +66,9 @@ extern TIM_HandleTypeDef htim3;
 extern TIM_HandleTypeDef htim4;
 extern DMA_HandleTypeDef hdma_usart1_tx;
 extern UART_HandleTypeDef huart1;
+extern USART_Handle	USART_Handle_t;
 /* USER CODE BEGIN EV */
-extern CommunicationBlock BlockCAN1_t;
+//extern CommunicationBlock BlockCAN1_t;
 /* USER CODE END EV */
 
 /******************************************************************************/
@@ -227,7 +229,8 @@ void DMA1_Channel4_IRQHandler(void)
   /* USER CODE BEGIN DMA1_Channel4_IRQn 0 */
 
   /* USER CODE END DMA1_Channel4_IRQn 0 */
-  HAL_DMA_IRQHandler(&hdma_usart1_tx);
+//  HAL_DMA_IRQHandler(&hdma_usart1_tx);
+	HAL_DMA_IRQHandler(&USART_Handle_t.hUSART_DMA);
   /* USER CODE BEGIN DMA1_Channel4_IRQn 1 */
 
   /* USER CODE END DMA1_Channel4_IRQn 1 */
@@ -239,16 +242,16 @@ void DMA1_Channel4_IRQHandler(void)
 void USB_LP_CAN1_RX0_IRQHandler(void)
 {
   /* USER CODE BEGIN USB_LP_CAN1_RX0_IRQn 0 */
-	CAN_HandleTypeDef *hcan;
-	
-	hcan = (CAN_HandleTypeDef *)BlockCAN1_t.hHandler;
-	if(NULL == hcan)
-	{
-			printf("\r\nfunc:%s, error:Null", __FUNCTION__);
-			return;			
-	}
-  /* USER CODE END USB_LP_CAN1_RX0_IRQn 0 */
-  HAL_CAN_IRQHandler(hcan);
+//	CAN_HandleTypeDef *hcan;
+//	
+//	hcan = (CAN_HandleTypeDef *)BlockCAN1_t.hHandler;
+//	if(NULL == hcan)
+//	{
+//			printf("\r\nfunc:%s, error:Null", __FUNCTION__);
+//			return;			
+//	}
+//  /* USER CODE END USB_LP_CAN1_RX0_IRQn 0 */
+//  HAL_CAN_IRQHandler(hcan);
   /* USER CODE BEGIN USB_LP_CAN1_RX0_IRQn 1 */
 
   /* USER CODE END USB_LP_CAN1_RX0_IRQn 1 */
@@ -332,7 +335,7 @@ void USART1_IRQHandler(void)
   /* USER CODE BEGIN USART1_IRQn 0 */
 
   /* USER CODE END USART1_IRQn 0 */
-  HAL_UART_IRQHandler(&huart1);
+  HAL_UART_IRQHandler(&USART_Handle_t.hUART);
   /* USER CODE BEGIN USART1_IRQn 1 */
 
   /* USER CODE END USART1_IRQn 1 */

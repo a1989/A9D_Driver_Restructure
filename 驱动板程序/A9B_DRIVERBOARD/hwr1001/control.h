@@ -27,7 +27,7 @@
 #define htimx_Encoder  htim3
 
 /*****husart_debug******/
-#define husart_debug  huart1
+//#define husart_debug  huart1
 
 /****eeprom*****/
 #define EEPROM_I2C     hi2c2

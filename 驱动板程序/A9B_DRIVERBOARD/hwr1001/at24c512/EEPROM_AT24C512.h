@@ -3,8 +3,6 @@
 
 #include "defines.h"
 
-
-
 typedef struct
 {
 		PRIVATE_MEMBER_TYPE *m_pThisPrivate;
@@ -12,6 +10,6 @@ typedef struct
 		bool (*m_pAT24C512_ReadByte)(PRIVATE_MEMBER_TYPE *pThis, StorageByteOptions *Params_t);
 }AT24C512_Control;
 
-void AT24C512_Init(PRIVATE_MEMBER_TYPE *pThis, DriverConfigMode eMode);
+void AT24C512_Init(AT24C512_Control *Block_t, DriverConfigMode eMode, uint8_t iHardwareAddress);
 
 #endif

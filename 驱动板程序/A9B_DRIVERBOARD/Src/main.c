@@ -33,6 +33,7 @@
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 #include "includes.h"
+#include "DriverSystemControl.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -108,8 +109,9 @@ int main(void)
 //	MX_SPI2_Init();
 //	MX_TIM1_Init();
 //	MX_TIM4_Init();
-	MX_IWDG_Init();
+//	MX_IWDG_Init();
 	/* Initialize interrupts */
+	DiverSystemInit();
 	MX_NVIC_Init();
 	/* USER CODE BEGIN 2 */
 
@@ -117,8 +119,8 @@ int main(void)
 
 	/* Infinite loop */
 	/* USER CODE BEGIN WHILE */
-        uint32_t i = 0;
-	BSP_Init();
+	
+  uint32_t i = 0;
 	while (1)
 	{
               if(i > 10000)

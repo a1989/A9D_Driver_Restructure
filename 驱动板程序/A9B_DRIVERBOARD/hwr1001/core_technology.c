@@ -92,16 +92,16 @@ uint8_t Xor_Checking (unsigned char *data, uint8_t data_start, uint8_t len)
     return XOR;
 }
 
-int fputc (int ch, FILE *f)
-{
-    /* 发送一个字节数据到串口RS232_USART */
-    HAL_UART_Transmit (&Uart_Handle, (uint8_t *)&ch, 1, 1000);
-    return (ch);
-}
+//int fputc (int ch, FILE *f)
+//{
+//    /* 发送一个字节数据到串口RS232_USART */
+//    HAL_UART_Transmit (&Uart_Handle, (uint8_t *)&ch, 1, 1000);
+//    return (ch);
+//}
 
-int fgetc (FILE *f)
-{
-    int ch;
-    HAL_UART_Receive (&Uart_Handle, (uint8_t *)&ch, 1, 1000);
-    return (ch);
-}
+//int fgetc (FILE *f)
+//{
+//    int ch;
+//    HAL_UART_Receive (&Uart_Handle, (uint8_t *)&ch, 1, 1000);
+//    return (ch);
+//}

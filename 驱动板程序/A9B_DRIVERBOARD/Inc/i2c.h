@@ -37,7 +37,7 @@
 /* USER CODE END Private defines */
 
 //void MX_I2C2_Init(void);
-void MX_I2C_Init(I2C_HandleTypeDef hi2c, I2C_TypeDef *I2C_t);
+void MX_I2C_Init(I2C_HandleTypeDef *hI2C, I2C_TypeDef *I2C_t);
 
 /* USER CODE BEGIN Prototypes */
 
