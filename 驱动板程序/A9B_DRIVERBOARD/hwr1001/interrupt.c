@@ -15,8 +15,9 @@ uint8_t gCan_Receive_Flag = 0;
 
 extern EncoderType GetEncoder;
 
-extern CommunicationBlock BlockCAN1_t;
+extern CommunicationBlock 	g_Communication_t;
 extern USART_Handle	USART_Handle_t;
+extern DevInfo 	DriverBoardInfo;
 
 uint8_t Uart_Receive_Interrupt_Switch (UART_HandleTypeDef* huart, uint8_t* uart_receive_data)
 {
@@ -121,31 +122,62 @@ void HAL_UART_RxCpltCallback (UART_HandleTypeDef* huart) //串口中断回调函
 //	}
 //}
 
-//void HAL_CAN_ErrorCallback (CAN_HandleTypeDef* hcan)
-//{
-//	printf ("\r\nCAN Error\r\n");
-//	HAL_CAN_Receive_IT (hcan, CAN_FIFO0); //开CAN接收中断
-//}
+void HAL_CAN_ErrorCallback (CAN_HandleTypeDef* hcan)
+{
+		printf ("\r\nCAN Error\r\n");
+		HAL_CAN_Receive_IT (hcan, CAN_FIFO0); //开CAN接收中断
+}
 
-////CAN接收数据
+//CAN接收数据
+void HAL_CAN_RxCpltCallback (CAN_HandleTypeDef *hcan)
+{
+	uint8_t i = 0;
+	
+	/* 比较ID */
+//	if (RxMessage.StdId == (*(uint32_t*)g_Communication_t.m_pGetInterfaceConfig(g_Communication_t.m_pThisPrivate, ))
+	if (hcan->pRxMsg->StdId == DriverBoardInfo.iDriverID)
+	{
+//		for (i = 0; i < 8; i++)
+//		{
+//			MAIN_TO_DRIVER_DATA[i] = RxMessage.Data[i];
+//		}
+			DEBUG_LOG("\r\nstart copy CAN data")
+			g_Communication_t.m_pGetHostData(g_Communication_t.m_pThisPrivate, hcan->pRxMsg->Data, hcan->pRxMsg->DLC, eCAN1);
+	}
+	else
+	{
+//		can_Receive_Right_flag = 0;
+	}
+	
+	
+	
+	if (HAL_BUSY == HAL_CAN_Receive_IT (hcan, CAN_FIFO0)) //开启中断接收
+	{
+		/* Enable FIFO 0 overrun and message pending Interrupt */
+		__HAL_CAN_ENABLE_IT (hcan, CAN_IT_FOV0 | CAN_IT_FMP0);
+	}
+	/* 准备中断接收 */
+	//HAL_CAN_Receive_IT (hcan, CAN_FIFO0);
+}
+
+//CAN中断函数
 //void HAL_CAN_RxCpltCallback (CAN_HandleTypeDef *hcan)
 //{
-////	uint8_t i = 0;
-////	/* 比较ID */
-////	if (RxMessage.StdId == (*(uint32_t*)BlockCAN1_t.m_pGetConfigParams(BlockCAN1_t.m_pThisPrivate)->pParam))
-////	{
-////		for (i = 0; i < 8; i++)
-////		{
-////			MAIN_TO_DRIVER_DATA[i] = RxMessage.Data[i];
-////		}
-////	}
-////	else
-////	{
-////		can_Receive_Right_flag = 0;
-////	}
-//	
-////	BlockCAN1_t.m_pGetHostData(BlockCAN1_t.m_pThisPrivate);
-//	
+//	uint8_t i = 0;
+//	/* 比较ID是否为0x1314 */
+//	if (RxMessage.StdId == driver_can_stdid)
+//	{
+//		for (i = 0; i < 8; i++)
+//		{
+//			MAIN_TO_DRIVER_DATA[i] = RxMessage.Data[i];
+//		}
+//		can_Receive_Right_flag = 1; // 接收正确
+//		gCan_Receive_Flag = 1;
+//	}
+//	else
+//	{
+//		can_Receive_Right_flag = 0;
+//	}
 //	if (HAL_BUSY == HAL_CAN_Receive_IT (hcan, CAN_FIFO0)) //开启中断接收
 //	{
 //		/* Enable FIFO 0 overrun and message pending Interrupt */
@@ -154,33 +186,6 @@ void HAL_UART_RxCpltCallback (UART_HandleTypeDef* huart) //串口中断回调函
 //	/* 准备中断接收 */
 //	//HAL_CAN_Receive_IT (hcan, CAN_FIFO0);
 //}
-
-////CAN中断函数
-////void HAL_CAN_RxCpltCallback (CAN_HandleTypeDef *hcan)
-////{
-////	uint8_t i = 0;
-////	/* 比较ID是否为0x1314 */
-////	if (RxMessage.StdId == driver_can_stdid)
-////	{
-////		for (i = 0; i < 8; i++)
-////		{
-////			MAIN_TO_DRIVER_DATA[i] = RxMessage.Data[i];
-////		}
-////		can_Receive_Right_flag = 1; // 接收正确
-////		gCan_Receive_Flag = 1;
-////	}
-////	else
-////	{
-////		can_Receive_Right_flag = 0;
-////	}
-////	if (HAL_BUSY == HAL_CAN_Receive_IT (hcan, CAN_FIFO0)) //开启中断接收
-////	{
-////		/* Enable FIFO 0 overrun and message pending Interrupt */
-////		__HAL_CAN_ENABLE_IT (hcan, CAN_IT_FOV0 | CAN_IT_FMP0);
-////	}
-////	/* 准备中断接收 */
-////	//HAL_CAN_Receive_IT (hcan, CAN_FIFO0);
-////}
 ///**
 //  * 函数功能: 定时器比较输出中断回调函数
 //  * 输入参数: htim：定时器句柄指针

@@ -56,7 +56,7 @@ bool AT24C512_ReadByte(PRIVATE_MEMBER_TYPE *pThis, StorageByteOptions *Params_t)
 				return false;
 		}		
 		
-		DEBUG_LOG("\r\nI2C Addr:%d", pPrivate_t->iI2C_Address)
+		DEBUG_LOG("\r\nDBG I2C Addr:0x%x", pPrivate_t->iI2C_Address)
 		
 		eStatus = HAL_I2C_Mem_Read (&pPrivate_t->hI2C, 
 																pPrivate_t->iI2C_Address, 
@@ -69,7 +69,7 @@ bool AT24C512_ReadByte(PRIVATE_MEMBER_TYPE *pThis, StorageByteOptions *Params_t)
 				return false;
 		}
 
-		DEBUG_LOG("\r\nRead AT24C512 Success")
+		DEBUG_LOG("\r\nDBG Read AT24C512 Success,value:0x%x", Params_t->iData)
 		
 		return true;		
 }

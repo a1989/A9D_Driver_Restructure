@@ -68,7 +68,7 @@ extern DMA_HandleTypeDef hdma_usart1_tx;
 extern UART_HandleTypeDef huart1;
 extern USART_Handle	USART_Handle_t;
 /* USER CODE BEGIN EV */
-//extern CommunicationBlock BlockCAN1_t;
+extern CommunicationBlock g_Communication_t;
 /* USER CODE END EV */
 
 /******************************************************************************/
@@ -95,6 +95,7 @@ void HardFault_Handler(void)
   /* USER CODE BEGIN HardFault_IRQn 0 */
 
   /* USER CODE END HardFault_IRQn 0 */
+	printf("\r\nHard Fault");
   while (1)
   {
     /* USER CODE BEGIN W1_HardFault_IRQn 0 */
@@ -242,16 +243,18 @@ void DMA1_Channel4_IRQHandler(void)
 void USB_LP_CAN1_RX0_IRQHandler(void)
 {
   /* USER CODE BEGIN USB_LP_CAN1_RX0_IRQn 0 */
-//	CAN_HandleTypeDef *hcan;
-//	
-//	hcan = (CAN_HandleTypeDef *)BlockCAN1_t.hHandler;
-//	if(NULL == hcan)
-//	{
-//			printf("\r\nfunc:%s, error:Null", __FUNCTION__);
-//			return;			
-//	}
-//  /* USER CODE END USB_LP_CAN1_RX0_IRQn 0 */
-//  HAL_CAN_IRQHandler(hcan);
+		CAN_HandleTypeDef *hcan;
+//		DEBUG_LOG("\r\nCAN recv Int1")
+		hcan = (CAN_HandleTypeDef *)g_Communication_t.m_pGetInterfaceHandle(g_Communication_t.m_pThisPrivate, eCAN1);
+//		DEBUG_LOG("\r\nCAN recv Int2")
+		if(NULL == hcan)
+		{
+				printf("\r\nfunc:%s, error:NULL handler", __FUNCTION__);
+				return;			
+		}
+		
+		/* USER CODE END USB_LP_CAN1_RX0_IRQn 0 */
+		HAL_CAN_IRQHandler(hcan);
   /* USER CODE BEGIN USB_LP_CAN1_RX0_IRQn 1 */
 
   /* USER CODE END USB_LP_CAN1_RX0_IRQn 1 */

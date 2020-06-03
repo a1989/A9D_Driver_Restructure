@@ -17,6 +17,13 @@
 																				printf(strParams, ##__VA_ARGS__);\
 																		}
 
+typedef struct
+{
+		uint8_t iMajorVersion;
+		uint8_t iMinorVersion;
+		uint8_t iDriverID;
+}DevInfo;																		
+																		
 typedef enum
 {
 		DISTRIBUTE = 0,
@@ -104,7 +111,8 @@ typedef struct
 {
 		MotorDriver eDriver;
 		DriverConfigMode eConfigMode;
-		uint16_t iSubdivision;
+		uint16_t iSubdivisionCfg;
+		uint8_t iCurrentCfg;
 		PulseTIM eMotorTIM;
 		float fCurrent;		
 }StepperParams;
@@ -168,7 +176,10 @@ typedef union
 #define RZ_AXIS_INDEX		5
 
 #if HARDWARE_VERSION == CHENGDU_DESIGN
-		#define EEPROM_DRIVER_ID_ADDR		0xF0
+		#define AT24C512_HARDWARE_ADDR		0xA0
+		#define EEPROM_ID_CFG_ADDR		0xF0
+		#define EEPROM_CURRENT_CFG_ADDR		0xF1
+		#define EEPROM_SUBDIVISION_CFG_ADDR		0xF2
 #endif
 
 #endif

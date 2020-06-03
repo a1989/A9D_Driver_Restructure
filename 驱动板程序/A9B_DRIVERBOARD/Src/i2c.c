@@ -44,7 +44,7 @@ void MX_I2C_Init(I2C_HandleTypeDef *hI2C, I2C_TypeDef *I2C_t)
     Error_Handler();
   }
 	
-	DEBUG_LOG("\r\nI2C Init Success")
+	DEBUG_LOG("\r\nDBG I2C Init Success")
 }
 
 void HAL_I2C_MspInit(I2C_HandleTypeDef* i2cHandle)

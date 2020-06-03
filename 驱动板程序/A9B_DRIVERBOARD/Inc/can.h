@@ -36,7 +36,7 @@
 
 /* USER CODE END Private defines */
 
-void MX_CAN_Init(CAN_HandleTypeDef hCAN, CAN_TypeDef *CAN_t);
+void MX_CAN_Init(CAN_HandleTypeDef *hCAN, CAN_TypeDef *CAN_t);
 
 /* USER CODE BEGIN Prototypes */
 

@@ -35,6 +35,7 @@ typedef enum
 typedef struct
 {
 		CommunicationType eType;
+		uint8_t iID;
 		//void参数类型需要针对于不同的通信方式
 		void *pParam;
 }CommunicationParams;
@@ -43,15 +44,18 @@ typedef struct
 typedef struct 
 {
 		PRIVATE_MEMBER_TYPE *m_pThisPrivate;	
-		VOID_HandleTypeDef *hHandler;
-		bool (*m_pGetHostData)(PRIVATE_MEMBER_TYPE *m_pPrivate);
-		void (*m_pSlaveDataPrepare)(PRIVATE_MEMBER_TYPE *m_pPrivate, uint8_t *pData, uint8_t iDataLen);
-		CommunicationParams *(*m_pGetConfigParams)(PRIVATE_MEMBER_TYPE *Block_t);
-		bool (*m_pPopMessage)(PRIVATE_MEMBER_TYPE *m_pPrivate, uint8_t *pData, uint8_t *iDataLen, bool *bAvailable);
+
+		void (*m_pAddCommunicationInterface)(PRIVATE_MEMBER_TYPE *m_pPrivate, CommunicationParams Params_t);
+		bool (*m_pGetHostData)(PRIVATE_MEMBER_TYPE *Block_t, uint8_t *pData, uint8_t iLen, CommunicationType eType);
+		void (*m_pSlaveDataPrepare)(PRIVATE_MEMBER_TYPE *m_pPrivate, uint8_t *pData, uint8_t iDataLen, CommunicationType eType);
+		void *(*m_pGetInterfaceHandle)(PRIVATE_MEMBER_TYPE *m_pPrivate, CommunicationType eType);
+		//
+		void *(*m_pGetInterfaceConfig)(PRIVATE_MEMBER_TYPE *m_pPrivate, CommunicationType eType);
+		void (*m_pPopMessage)(PRIVATE_MEMBER_TYPE *m_pPrivate, uint8_t *pData, uint8_t *iDataLen, bool *bAvailable);
 		void (*m_pExeBlock)(PRIVATE_MEMBER_TYPE *m_pPrivate);
 }CommunicationBlock;
 
 //初始化通信控制块
-bool CommunicationBlockInit(CommunicationBlock *Block_t, CommunicationParams Params_t);
+bool CommunicationBlockInit(CommunicationBlock *Block_t);
 
 #endif

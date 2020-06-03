@@ -22,33 +22,35 @@
 
 /* USER CODE BEGIN 0 */
 #include "includes.h"
-
+#include "defines.h"
 /* USER CODE END 0 */
 
 //CAN_HandleTypeDef hcan;
 //CAN_HandleTypeDef g_hCAN1;
 
 /* CAN init function */
-void MX_CAN_Init(CAN_HandleTypeDef hCAN, CAN_TypeDef *CAN_t)
+void MX_CAN_Init(CAN_HandleTypeDef *hCAN, CAN_TypeDef *CAN_t)
 {
 
-  hCAN.Instance = CAN_t;
-  hCAN.Init.Prescaler = 8;
-  hCAN.Init.Mode = CAN_MODE_NORMAL;
-  hCAN.Init.SJW = CAN_SJW_1TQ;
-  hCAN.Init.BS1 = CAN_BS1_5TQ;
-  hCAN.Init.BS2 = CAN_BS2_3TQ;
-  hCAN.Init.TTCM = DISABLE;
-  hCAN.Init.ABOM = DISABLE;
-  hCAN.Init.AWUM = DISABLE;
-  hCAN.Init.NART = ENABLE;
-  hCAN.Init.RFLM = DISABLE;
-  hCAN.Init.TXFP = DISABLE;
-  if (HAL_CAN_Init(&hCAN) != HAL_OK)
+  hCAN->Instance = CAN_t;
+  hCAN->Init.Prescaler = 8;
+  hCAN->Init.Mode = CAN_MODE_NORMAL;
+  hCAN->Init.SJW = CAN_SJW_1TQ;
+  hCAN->Init.BS1 = CAN_BS1_5TQ;
+  hCAN->Init.BS2 = CAN_BS2_3TQ;
+  hCAN->Init.TTCM = DISABLE;
+  hCAN->Init.ABOM = DISABLE;
+  hCAN->Init.AWUM = DISABLE;
+  hCAN->Init.NART = ENABLE;
+  hCAN->Init.RFLM = DISABLE;
+  hCAN->Init.TXFP = DISABLE;
+  if (HAL_CAN_Init(hCAN) != HAL_OK)
   {
+		DEBUG_LOG("\r\nMX CAN init failed")
     Error_Handler();
   }
-
+	
+	DEBUG_LOG("\r\nMX CAN init success")
 }
 
 void HAL_CAN_MspInit(CAN_HandleTypeDef* canHandle)

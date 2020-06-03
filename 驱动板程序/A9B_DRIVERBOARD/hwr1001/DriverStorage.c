@@ -92,7 +92,7 @@ bool StorageReadByte(PRIVATE_MEMBER_TYPE *pThisPrivate, StorageParams *pParams_t
 				return false;
 		}
 		
-		DEBUG_LOG("\r\nStart Read Byte")
+		DEBUG_LOG("\r\nDBG Start Read Byte")
 		
 		pNode = pPrivate_t->pStorageList;
 
@@ -136,7 +136,7 @@ bool StorageWriteByte(PRIVATE_MEMBER_TYPE *pThisPrivate, StorageParams *pParams_
 				return false;
 		}
 		
-		DEBUG_LOG("\r\nStart Write Byte")
+		DEBUG_LOG("\r\nDBG Start Write Byte")
 		
 		pNode = pPrivate_t->pStorageList;
 		do
