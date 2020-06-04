@@ -1,5 +1,6 @@
 #include "MotionControl.h"
 #include "MotorControl.h"
+#include <stdlib.h>
 
 #define MOTION_TYPE_NAME	"MotionTypedef"
 
@@ -31,6 +32,31 @@ static void SetAxisIndex(const uint8_t iBoardID, AxisEnum *iAxisIndex)
 		}
 }
 
+static void HomeAxisImmediately(PRIVATE_MEMBER_TYPE *pThisPrivate)
+{
+		DEBUG_LOG("\r\nStart home axis")
+	
+		
+}
+
+//添加一个电机
+static void AddMotor(PRIVATE_MEMBER_TYPE *pThisPrivate, MotorParams *Params_t)
+{
+		PrivateBlock *pPrivate_t = NULL;
+	
+		if(NULL == pThisPrivate || NULL == Params_t)
+		{
+				printf("\r\nfunc:%s:block null pointer", __FUNCTION__);
+				return;
+		}		
+
+		pPrivate_t = (PrivateBlock *)pThisPrivate;
+		
+		DEBUG_LOG("\r\nDBG Add a motor")
+		
+		pPrivate_t->pMotorControl_t->m_pAddMotor(pPrivate_t->pMotorControl_t->m_pThisPrivate, Params_t);
+}
+
 //运动控制块初始化
 bool MotionBlockInit(MotionManageBlock *Block_t)
 {
@@ -43,43 +69,54 @@ bool MotionBlockInit(MotionManageBlock *Block_t)
 		}		
 		
 		pPrivate_t = (PrivateBlock *)malloc(sizeof(PrivateBlock));
+		if(NULL == pPrivate_t)
+		{
+				printf("\r\nfunc:%s:malloc private block failed", __FUNCTION__);
+				return false;		
+		}
 		
 		pPrivate_t->strType = MOTION_TYPE_NAME;
-		pPrivate_t->pMotorControl_t = (MotorControl *)malloc(sizeof(MotorControl));
+				
+		#if HARDWARE_VERSION == CHENGDU_DESIGN || HARDWARE_VERSION == SHENZHEN_DESIGN_V1
+				pPrivate_t->pMotorControl_t = (MotorControl *)malloc(sizeof(MotorControl));
+				if(NULL == pPrivate_t->pMotorControl_t)
+				{
+						printf("\r\nfunc:%s:malloc motor block failed", __FUNCTION__);
+						return false;		
+				}
+				
+				if(!MotorControlInit(pPrivate_t->pMotorControl_t))
+				{
+						printf("\r\nfunc:%s:init motor block failed", __FUNCTION__);
+						return false;								
+				}
+		#elif 
+				
+		#endif	
 		
 		Block_t->m_pThisPrivate = pPrivate_t;
+		Block_t->m_pHomeAxisImmediately = HomeAxisImmediately;
+		Block_t->m_pAddMotor = AddMotor;
 		
 		return true;
 }
 
-//添加一个电机
-void AddMotor(PRIVATE_MEMBER_TYPE *pThisPrivate, MotorParams *Params_t)
-{
-		PrivateBlock *pPrivate_t = NULL;
-	
-		if(NULL == pThisPrivate || NULL == Params_t)
-		{
-				printf("\r\nfunc:%s:block null pointer", __FUNCTION__);
-				return;
-		}		
 
-		pPrivate_t = (PrivateBlock *)pThisPrivate;
-		
-		pPrivate_t->pMotorControl_t->m_pAddMotor(pPrivate_t->pMotorControl_t->m_pThisPrivate, Params_t);
-}
 
-static void HomeSingleAxisImmediately()
+void AddMotorLimitSwitch(PRIVATE_MEMBER_TYPE *pThisPrivate, MotorParams *Params_t)
 {
 		
 }
 
-static void HomeAxis(struct MotionBlock *pThis, MoveParams *Params_t)
-{
-		MoveBlock *MoveControl_t = NULL;
-	
-		MoveControl_t = pThis->m_pMoveControl;
-		MoveControl_t->m_pHomeAxis(MoveControl_t->m_pThis, Params_t);
-}
+
+
+//static void HomeAxis(struct MotionBlock *pThis, MoveParams *Params_t)
+//{
+//		MoveBlock *MoveControl_t = NULL;
+//	
+//		MoveControl_t = pThis->m_pMoveControl;
+//		MoveControl_t->m_pHomeAxis(MoveControl_t->m_pThis, Params_t);
+//}
 
 void ProcessBlockData()
 {
@@ -136,7 +173,7 @@ static float GetCurrentLocation(void)
 
 }
 
-void PushMoveData(MoveBlock *Block_t, float fTargetPos, float fSpeed)	
-{
-		
-}
+//void PushMoveData(MoveBlock *Block_t, float fTargetPos, float fSpeed)	
+//{
+//		
+//}

@@ -126,9 +126,25 @@ typedef struct
 typedef struct
 {
 		uint8_t iMotorID;
-		MotorType eMotorType;				
-		void *MotorSysParams;
+		MotorType eMotorType;			
+		//指向一个电机配置参数
+		void *pMotorSysParams;		
 }MotorParams;
+
+typedef enum
+{
+		eNegative = 0,
+		eZero,
+		ePositive
+}LimitFunction;
+
+typedef struct
+{
+		GPIO_TypeDef *GPIO_Port;
+		uint16_t GPIO_Pin;
+		uint8_t iMotorBelong;
+		LimitFunction eFunc;
+}LimitParams;
 
 typedef struct
 {
@@ -180,6 +196,9 @@ typedef union
 		#define EEPROM_ID_CFG_ADDR		0xF0
 		#define EEPROM_CURRENT_CFG_ADDR		0xF1
 		#define EEPROM_SUBDIVISION_CFG_ADDR		0xF2
+		
+		#define ENCODER_LINES		1000
+		#define ENCODER_MULTIPLY		4
 #endif
 
 #endif

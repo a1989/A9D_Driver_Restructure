@@ -19,7 +19,7 @@
 
 /* Includes ------------------------------------------------------------------*/
 #include "spi.h"
-
+#include "defines.h"
 /* USER CODE BEGIN 0 */
 
 /* USER CODE END 0 */
@@ -47,6 +47,7 @@ void MX_SPI_Init(SPI_HandleTypeDef hSPI, SPI_TypeDef *SPI_t)
     Error_Handler();
   }
 
+	DEBUG_LOG("\r\nMX SPI init success")
 }
 
 void HAL_SPI_MspInit(SPI_HandleTypeDef* spiHandle)

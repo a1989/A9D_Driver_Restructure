@@ -17,9 +17,10 @@ typedef struct
 {					
 		PRIVATE_MEMBER_TYPE *m_pThisPrivate;
 		
-		void (*m_pAddMotor)(PRIVATE_MEMBER_TYPE *m_pThisPrivate, MotorParams *Params_t);
+		void (*m_pAddMotor)(PRIVATE_MEMBER_TYPE *pThisPrivate, MotorParams *Params_t);
 		void (*m_pSetMotorMovement)(PRIVATE_MEMBER_TYPE *m_pThisPrivate, const MoveParams *Params_t);
 		void (*m_pHomeAxis)(PRIVATE_MEMBER_TYPE *m_pThisPrivate, MoveParams *Params_t);
+		void (*m_pHomeAxisImmediately)(PRIVATE_MEMBER_TYPE *m_pThisPrivate);
 		void (*m_pGetMotionData)(PRIVATE_MEMBER_TYPE *m_pThisPrivate, MoveParams *Params_t);
 }MotionManageBlock;
 

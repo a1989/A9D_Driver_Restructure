@@ -24,7 +24,6 @@
 
 #include "DriverSystemControl.h"
 #include "MotionControl.h"
-#include "Hardware.h"
 #include "Communication.h"
 #include "Version.h"
 #include "DriverStorage.h"
@@ -33,7 +32,7 @@
 
 /*系统功能分为四大部分:通信, 运动控制, 存储, 硬件操作*/
 //运动控制块,包含所有运动相关的操作, 使用前必须使用MotionBlockInit()初始化
-MotionManageBlock 	g_SingleAxis_t;
+MotionManageBlock 	g_MotionBlock_t;
 CommunicationBlock 	g_Communication_t;
 StorageControl 	g_StorageDataBlock_t;
 DevInfo 	DriverBoardInfo;
@@ -70,43 +69,48 @@ static void DataStructureInit(void)
 		#endif	
 		
 		Delay_ms(10);
-		goto CANCFG;
+//		goto CANCFG;
 			
 		//配置运动设备驱动
-		while(!MotionBlockInit(&g_SingleAxis_t))
+		while(!MotionBlockInit(&g_MotionBlock_t))
 		{
 				Delay_ms(2000);
 		}
 		
 		#if HARDWARE_VERSION == CHENGDU_DESIGN
-				//配置电机参数
+				MotorParams_t.pMotorSysParams = NULL;
+		
+				//配置电机参数,根据硬件,电机为带编码器的步进电机
 				MotorParams_t.iMotorID = 0;
 				MotorParams_t.eMotorType = eSTEPPER_ENCODER;
+				
 				//读取保存在EEPROM中的配置
 				//读取电流配置
 				ByteOptions_t.iAddress = EEPROM_CURRENT_CFG_ADDR;
 				g_StorageDataBlock_t.m_pStorageReadByte(g_StorageDataBlock_t.m_pThisPrivate, &StorageParams_t, &ByteOptions_t);
 				StepperSysParams_t.StepperParams_t.iCurrentCfg = ByteOptions_t.iData;
+		
 				//读取细分配置
 				ByteOptions_t.iAddress = EEPROM_SUBDIVISION_CFG_ADDR;
 				g_StorageDataBlock_t.m_pStorageReadByte(g_StorageDataBlock_t.m_pThisPrivate, &StorageParams_t, &ByteOptions_t);
 				StepperSysParams_t.StepperParams_t.iSubdivisionCfg = ByteOptions_t.iData;
 		
-				StepperSysParams_t.StepperParams_t.eConfigMode = eSPI1;
-				StepperSysParams_t.StepperParams_t.eDriver = eDRV8711;
-				StepperSysParams_t.StepperParams_t.eMotorTIM = eTIM2;
-				StepperSysParams_t.EncoderParmas_t.eEncoderTIM = eTIM3;
-				StepperSysParams_t.EncoderParmas_t.iEncoderLines = 1000;
-				StepperSysParams_t.EncoderParmas_t.iMultiplication = 4;
+				//根据硬件配置步进电机和编码器参数
+				StepperSysParams_t.StepperParams_t.eConfigMode = eSPI1;		//SPI1方式
+				StepperSysParams_t.StepperParams_t.eDriver = eDRV8711;		//驱动为DRV8711
+				StepperSysParams_t.StepperParams_t.eMotorTIM = eTIM2;			//驱动使用的脉冲由TIM2发出
+				StepperSysParams_t.EncoderParmas_t.eEncoderTIM = eTIM3;		//编码器使用TIM3计数
+				StepperSysParams_t.EncoderParmas_t.iEncoderLines = ENCODER_LINES;		//码盘为1000线
+				StepperSysParams_t.EncoderParmas_t.iMultiplication = ENCODER_MULTIPLY;		//编码器4倍频
 				
-				MotorParams_t.MotorSysParams = &StepperSysParams_t;
+				MotorParams_t.pMotorSysParams = &StepperSysParams_t;
 				//新增一个电机
-				g_SingleAxis_t.m_pAddMotor(g_SingleAxis_t.m_pThisPrivate, &MotorParams_t);
+				g_MotionBlock_t.m_pAddMotor(g_MotionBlock_t.m_pThisPrivate, &MotorParams_t);
 		#elif HARDWARE_VERSION == SHENZHEN_DESIGN_V1
 				
 		#endif
 
-CANCFG:
+//CANCFG:
 
 		while(!CommunicationBlockInit(&g_Communication_t))
 		{
@@ -143,82 +147,84 @@ void DiverSystemInit(void)
 }
 
 //处理数据发送
-void DataSendHandler(uint8_t *pData, uint8_t iDataLen)
+void DataSendHandler(uint8_t *pData, uint8_t iDataLen, CommunicationType eType)
 {
-		
+		g_Communication_t.m_pSlaveDataPrepare(g_Communication_t.m_pThisPrivate, pData, iDataLen, eType);		
 }
 
 //上位机请求数据
-//void QueryFromHostHandler(const uint8_t *pRawData)
-//{
-//		uint8_t arrDataBuffer[16];
-//		uint8_t iDataLen = 0;
-//	
-//		switch((QueryDataObj)pRawData[0])
-//		{
-//			//请求版本号
-//			case VERSION:		
-//				arrDataBuffer[0] = DriverBoardInfo.iMajorVersion;
-//				arrDataBuffer[1] = DriverBoardInfo.iMinorVersion;
-//				iDataLen = 2;
-//				break;
-//			//请求细分设置
-//			case SUBDIVISION:
-//				iDataLen = 2;
-//				break;
-//			//请求最大电流
-//			case MAX_CURRENT:
-//				break;
-//			//请求最大行程
-//			case MAX_LEN:
-//				break;
-//			//请求实时位置
-//			case REALTIME_LOCATION:
-//				break;
-//			//请求实时速度
-//			case REALTIME_SPEED:
-//				break;
-//			//请求限位状态
-//			case LIMIT_STATUS:
-//				break;
-//			case REALTIME_CURRENT:
-//				break;
-//			
-//		}
-//		
-//		DataSendHandler(arrDataBuffer, iDataLen);
-//}
+void QueryFromHostHandler(const uint8_t *pRawData, const uint8_t iRawDataLen)
+{
+		uint8_t arrDataBuffer[16];
+		uint8_t iDataLen = 0;
+	
+		switch((QueryDataObj)pRawData[0])
+		{
+			//请求版本号
+			case VERSION:		
+				DEBUG_LOG("\r\nQuerry Version")
+				arrDataBuffer[0] = DriverBoardInfo.iMajorVersion;
+				arrDataBuffer[1] = DriverBoardInfo.iMinorVersion;
+				iDataLen = 2;
+				break;
+			//请求细分设置
+			case SUBDIVISION:
+				
+				iDataLen = 2;
+				break;
+			//请求最大电流
+			case MAX_CURRENT:
+				break;
+			//请求最大行程
+			case MAX_LEN:
+				break;
+			//请求实时位置
+			case REALTIME_LOCATION:
+				break;
+			//请求实时速度
+			case REALTIME_SPEED:
+				break;
+			//请求限位状态
+			case LIMIT_STATUS:
+				
+				break;
+			case REALTIME_CURRENT:
+				break;			
+		}
+		
+		DataSendHandler(arrDataBuffer, iDataLen, eCAN1);
+}
 
 //上位机命令
-//void CommandFromHostHandler(void)
-//{
-//		switch()
-//		{
-//			case MOVE:
-//				//将运动数据写入运动控制块
+void CommandFromHostHandler(const uint8_t *pRawData, const uint8_t iDataLen)
+{
+		switch((CmdDataObj)pRawData[0])
+		{
+			case MOVE:
+				//将运动数据写入运动控制块
 //				MotionBlock_t.m_SetMoveData();
-//				break;
-//			case HOME:
-//				SingleAxis_t.m_HomeAxis();
-//				break;
-//			case BOARD_RESET:
-//				break;
-//			case EN_TORQUE:
+				break;
+			case HOME:
+				g_MotionBlock_t.m_pHomeAxisImmediately(g_MotionBlock_t.m_pThisPrivate);
+				break;
+			case BOARD_RESET:
+				break;
+			case EN_TORQUE:
 //				MotionBlock_t.m_SetTorque();
-//				break;
-//			case MOTOR_STOP:
+				break;
+			case MOTOR_STOP:
 //				MotionBlock_t.m_StopMotor();
-//				break;
-//			case SET_ID:
-//				break;
-//			case SET_CURRENT:
+				break;
+			case SET_ID:
+				break;
+			case SET_CURRENT:
 //				StructMotionBlock.m_SetCurrent();
-//				break;
-//			case SET_SUBDIVISION:
+				break;
+			case SET_SUBDIVISION:
 //				StructMotionBlock.m_SetSubdivision();
-//				break;				
-//		}
-//}
+				break;				
+		}
+}
 
 //心跳
 void HeartBeatHandler(uint8_t *pData, uint8_t iDataLen, CommunicationType eType)
@@ -230,11 +236,11 @@ void HeartBeatHandler(uint8_t *pData, uint8_t iDataLen, CommunicationType eType)
 //解析消息类型
 static RecvDataType RecvDataAnalyze(const uint8_t *pRawData, const uint8_t iRawDataLen, uint8_t *pData, uint8_t *iDataLen)
 {
-		RecvDataType iType;
+		RecvDataType eType;
 	
 		if(NULL == pRawData || NULL == pData)
 		{
-				iType = Error;
+				eType = Error;
 		}		
 		else
 		{
@@ -243,23 +249,24 @@ static RecvDataType RecvDataAnalyze(const uint8_t *pRawData, const uint8_t iRawD
 						case 0x81:
 							memcpy(pData, pRawData, 1);
 							*iDataLen = 1;
-							iType = HEARTBEAT;
+							eType = HEARTBEAT;
 							break;
 						case 0x01:
-							memcpy(pData, pRawData + 1, 1);
-							iType = CMD;
+							memcpy(pData, pRawData + 2, 1);
+							*iDataLen = iRawDataLen - 2;
+							eType = CMD;
 							break;
 						case 0x02:
-							memcpy(pData, pRawData + 1, 1);
-							iType = QUERY;
+							memcpy(pData, pRawData + 2, 1);
+							eType = QUERY;
 							break;
 						case 0x03:
-							iType = UPDATE;
+							eType = UPDATE;
 							break;
 				}
 		}
 		
-		return iType;
+		return eType;
 }
 
 //根据数据做对应的处理
@@ -289,15 +296,14 @@ bool ProcessMessage(const uint8_t *pRawData, const uint8_t iRawDataLen)
 				bClearBuffer = false;
 				break;
 			case QUERY:
-//				QueryFromHostHandler(pData);
+				QueryFromHostHandler(pData, iDataLen);
 				break;
 			case CMD:
-//				CommandFromHostHandler();
+				CommandFromHostHandler(pData, iDataLen);
 				break;
 			case UPDATE:
 				break;
 			case Error:
-				//sprintf();
 				printf("\r\nfunc:%s,Error Data", __FUNCTION__);
 				break;
 		}

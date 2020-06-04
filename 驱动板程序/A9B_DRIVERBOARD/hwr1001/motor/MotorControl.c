@@ -1,6 +1,7 @@
 #include "MotorControl.h"
 #include "StepperControl.h"
 #include "IncEncoderControl.h"
+#include "stdlib.h"
 
 #define POSITIVE_DIRECTION	1		//正方向
 #define NEGTIVE_DIRECTION		-1	//负方向
@@ -69,19 +70,7 @@ MoveNode_t *MallocMoveNode_t(void)
 		return pNode_t;
 }
 
-void MotorControlInit(MotorControl *Block_t)
-{
-		//结构体指针指向初始化的内存区域
-		PrivateBlock *pPrivate_t = (PrivateBlock *)malloc(sizeof(PrivateBlock));
-	
-		if(NULL == pPrivate_t)
-		{
-				printf("\r\nfunc:%s:block null pointer", __FUNCTION__);
-				return;
-		}			
-}
-
-void AddMotor(PRIVATE_MEMBER_TYPE *pThisPrivate, MotorParams *pParams_t)
+static bool AddMotor(PRIVATE_MEMBER_TYPE *pThisPrivate, MotorParams *pParams_t)
 {
 		StepperControl *pStepper_t = NULL;
 		IncEncoderControl *pIncEncoder_t = NULL;
@@ -94,7 +83,7 @@ void AddMotor(PRIVATE_MEMBER_TYPE *pThisPrivate, MotorParams *pParams_t)
 		if(NULL == pThisPrivate)
 		{
 				printf("\r\nfunc:%s:block null pointer", __FUNCTION__);
-				return;
+				return false;
 		}		
 		
 		pPrivate_t = (PrivateBlock *)pThisPrivate;
@@ -103,8 +92,15 @@ void AddMotor(PRIVATE_MEMBER_TYPE *pThisPrivate, MotorParams *pParams_t)
 		{
 				case eSTEPPER_ENCODER:
 					//初始化步进电机
+					DEBUG_LOG("\r\nDBG Start init a stepper")
 					pStepper_t = (StepperControl *)malloc(sizeof(StepperControl));
-					pStepperSysParams_t = (StepperSysParams *)pParams_t->MotorSysParams;
+					if(NULL == pStepper_t)
+					{
+							printf("\r\nfunc:%s:malloc stepper block failed", __FUNCTION__);
+							return false;								
+					}
+					//取出配置参数
+					pStepperSysParams_t = (StepperSysParams *)pParams_t->pMotorSysParams;
 					StepperControlInit(pStepper_t, &pStepperSysParams_t->StepperParams_t);
 					//初始化编码器
 					pIncEncoder_t = (IncEncoderControl *)malloc(sizeof(IncEncoderControl));
@@ -117,8 +113,10 @@ void AddMotor(PRIVATE_MEMBER_TYPE *pThisPrivate, MotorParams *pParams_t)
 		pList = (MortorList *)malloc(sizeof(MortorList));
 		if(NULL == pList)
 		{
-				return;
+				printf("\r\nfunc:%s:malloc list node failed", __FUNCTION__);
+				return false;
 		}
+		
 		pList->pMotor_t = pStepper_t;
 		pList->pEncoder_t = pIncEncoder_t;
 		pList->pNext_t = NULL;
@@ -138,6 +136,31 @@ void AddMotor(PRIVATE_MEMBER_TYPE *pThisPrivate, MotorParams *pParams_t)
 				pNode->pNext_t = pList;
 		}
 }
+
+bool MotorControlInit(MotorControl *Block_t)
+{
+		//结构体指针指向初始化的内存区域
+		PrivateBlock *pPrivate_t = (PrivateBlock *)malloc(sizeof(PrivateBlock));
+		if(NULL == pPrivate_t)
+		{
+				printf("\r\nfunc:%s:malloc failed", __FUNCTION__);
+				return false;					
+		}
+	
+		if(NULL == Block_t)
+		{
+				printf("\r\nfunc:%s:block null pointer", __FUNCTION__);
+				return false;
+		}			
+		
+		Block_t->m_pThisPrivate = pPrivate_t;
+		Block_t->m_pAddMotor = AddMotor;
+		
+		DEBUG_LOG("\r\nDBG Motor control init success")
+		return true;
+}
+
+
 
 void PushData(MoveNode_t *Node_t, MoveNodeParams *Params_t)
 {
@@ -190,12 +213,12 @@ static void SigleMotorControl(MoveNode_t *pNode)
 		MoveNodeParams Params_t = pNode->arrNodeBuffer[pNode->iReadIndex];
 		switch(Params_t.arrMotorType[Params_t.eAxisIndex])
 		{
-				case STEPPER:
+				case eSTEPPER:
 					break;
-				case STEPPER_ENCODER:
-					pNode->MotorControl_t.Stepper_t.m_pSingleEncoderStepperPrepare();
+				case eSTEPPER_ENCODER:
+					//pNode->MotorControl_t.Stepper_t.m_pSingleEncoderStepperPrepare();
 					break;
-				case BRUSHLESS:
+				case eBRUSHLESS:
 					break;
 				default:
 					break;
@@ -209,7 +232,7 @@ void ExecuteBlock(MoveNode_t *pNode)
 				switch(pNode->arrNodeBuffer[pNode->iReadIndex].eControlType)
 				{
 						case CONTROL_SINGLE_AXIS:							
-							SigleMotorControl(&pNode->arrNodeBuffer[pNode->iReadIndex]);
+//							SigleMotorControl(&pNode->arrNodeBuffer[pNode->iReadIndex]);
 							break;
 						default:
 							break;

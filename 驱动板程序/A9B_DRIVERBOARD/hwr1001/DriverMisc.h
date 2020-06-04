@@ -1,5 +1,5 @@
-#ifndef __HARDWARE_H__
-#define __HARDWARE_H__
+#ifndef __DRIVERMISC_H__
+#define __DRIVERMISC_H__
 
 void HardwareConifg(void);
 void HardwareInit(void);
