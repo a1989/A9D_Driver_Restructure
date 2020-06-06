@@ -2,6 +2,13 @@
 #include <stdlib.h>
 
 #define CTRL_REG_ADDR		0x00
+#define TORQUE_REG_ADDR		0x01
+#define OFF_REG_ADDR		0x02
+#define BLANK_REG_ADDR		0x03
+#define DECAY_REG_ADDR		0x04
+#define STALL_REG_ADDR		0x05
+#define DRIVE_REG_ADDR		0x06
+#define STATUS_REG_ADDR		0x07
 
 //位段模式,由低位到高位
 typedef struct 
@@ -48,7 +55,7 @@ typedef struct
 
 typedef union
 {
-  StructRegTORQUE structReg;
+  StructRegOFF structReg;
   uint16_t iRegValue;
 }unRegOFF;
 //
@@ -142,6 +149,13 @@ typedef struct
 {
 		SPI_HandleTypeDef hSPI;
 		unRegCTRL CTRL_RegValue;		
+		unRegTORQUE TORQUE_RegValue;
+		unRegOFF OFF_RegValue;
+		unRegBLANK BLANK_RegValue;
+		unRegDECAY DECAY_RegValue;
+		unRegSTALL STALL_RegValue;
+		unRegDRIVE DRIVE_RegValue;
+		unRegSTATUS STATUS_RegValue;
 }PrivateBlock;
 
 static bool WriteSPI(SPI_HandleTypeDef *hSPI, uint8_t iAddr, uint16_t iData)
@@ -162,7 +176,7 @@ static bool WriteSPI(SPI_HandleTypeDef *hSPI, uint8_t iAddr, uint16_t iData)
 		return true;
 }
 
-bool SetRegisterCTRL(PrivateBlock *pPrivate)
+bool SetRegisterDefaultCTRL(PrivateBlock *pPrivate)
 {
 		pPrivate->CTRL_RegValue.structReg.ENBL = 0b0;
 		pPrivate->CTRL_RegValue.structReg.RDIR = 0b1;
@@ -175,9 +189,57 @@ bool SetRegisterCTRL(PrivateBlock *pPrivate)
 		WriteSPI(&pPrivate->hSPI, CTRL_REG_ADDR, pPrivate->CTRL_RegValue.iRegValue);
 }
 
-bool SetRegisterTORQUE(PrivateBlock *pPrivate)
+bool SetRegisterDefaultTORQUE(PrivateBlock *pPrivate)
 {
+		pPrivate->TORQUE_RegValue.structReg.TORQUE = 0xFF;
+		pPrivate->TORQUE_RegValue.structReg.SIMPLTH = 0b001;
 		
+		WriteSPI(&pPrivate->hSPI, TORQUE_REG_ADDR, pPrivate->TORQUE_RegValue.iRegValue);		
+}
+
+bool SetRegisterDefaultOFF(PrivateBlock *pPrivate)
+{
+		pPrivate->OFF_RegValue.structReg.TOFF = 0x40;
+		pPrivate->OFF_RegValue.structReg.PWMMODE = 0b1;
+		
+		WriteSPI(&pPrivate->hSPI, OFF_REG_ADDR, pPrivate->OFF_RegValue.iRegValue);		
+}
+
+bool SetRegisterDefaultBLANK(PrivateBlock *pPrivate)
+{
+		pPrivate->BLANK_RegValue.structReg.TBLANK = 0x40;
+		pPrivate->BLANK_RegValue.structReg.ABT = 0b1;
+		
+		WriteSPI(&pPrivate->hSPI, BLANK_REG_ADDR, pPrivate->BLANK_RegValue.iRegValue);		
+}
+
+bool SetRegisterDefaultDECAY(PrivateBlock *pPrivate)
+{
+		pPrivate->DECAY_RegValue.structReg.TDECAY = 0x10;
+		pPrivate->DECAY_RegValue.structReg.DECMOD = 0b001;
+		
+		WriteSPI(&pPrivate->hSPI, DECAY_REG_ADDR, pPrivate->DECAY_RegValue.iRegValue);		
+}
+
+bool SetRegisterDefaultSTALL(PrivateBlock *pPrivate)
+{
+		pPrivate->STALL_RegValue.structReg.SDTHR = 0x10;
+		pPrivate->STALL_RegValue.structReg.SDCNT = 0b00;
+		pPrivate->STALL_RegValue.structReg.VDIV = 0b11;
+	
+		WriteSPI(&pPrivate->hSPI, STALL_REG_ADDR, pPrivate->STALL_RegValue.iRegValue);		
+}
+
+bool SetRegisterDefaultDRIVE(PrivateBlock *pPrivate)
+{
+		pPrivate->DRIVE_RegValue.structReg.OCPTH = 0b01;
+		pPrivate->DRIVE_RegValue.structReg.OCPDEG = 0b10;
+		pPrivate->DRIVE_RegValue.structReg.TDRIVEN = 0b01;
+		pPrivate->DRIVE_RegValue.structReg.TDRIVEP = 0b01;
+		pPrivate->DRIVE_RegValue.structReg.IDRIVEN = 0b10;
+		pPrivate->DRIVE_RegValue.structReg.IDRIVEP = 0b10;
+	
+		WriteSPI(&pPrivate->hSPI, DRIVE_REG_ADDR, pPrivate->DRIVE_RegValue.iRegValue);		
 }
 
 bool DRV8711_Init(DRV8711_Control *Block_t, DRV8711_Params *Params_t)
@@ -215,47 +277,80 @@ bool DRV8711_Init(DRV8711_Control *Block_t, DRV8711_Params *Params_t)
 
 bool DRV8711_SetSubdivision(PrivateBlock *pPrivate, uint8_t iCfg)
 {
+    uint8_t iRegCfg = 0;
 
-    uint16_t tmp0,tmp1;
-
-    tmp0 = drv8711_ctrl_value;
     switch (iCfg)
     {
 				case 1:
 						
 						break;
         case 2:
-				tmp1 = 0x01;//2细分
+						iRegCfg = 0x01;//2细分
             break;
         case 4:
-				tmp1 = 0x02;//4细分
+						iRegCfg = 0x02;//4细分
             break;
         case 8:
-				tmp1 = 0x03;//8细分
+						iRegCfg = 0x03;//8细分
             break;
         case 16:
-				tmp1 = 0x04;//16细分
+						iRegCfg = 0x04;//16细分
             break;
         case 32:
-				tmp1 = 0x05;//32细分
+						iRegCfg = 0x05;//32细分
             break;
         case 64:
-				tmp1 = 0x06;//64细分
+						iRegCfg = 0x06;//64细分
             break;
         case 128:
-				tmp1 = 0x07;//128细分
+						iRegCfg = 0x07;//128细分
             break;
         case 255:
-				tmp1 = 0x08;//256细分
+						iRegCfg = 0x08;//256细分
             break;
         default:
-				tmp1= 0x05;
+						iRegCfg = 0x05;
+						break;
     }
-    tmp0 = tmp0 & 0xff87;
-    tmp0 = tmp0 | (tmp1 << 3);
-    drv8711_ctrl_value = tmp0;
-	//printf ("\r\n %x", drv8711_ctrl_value);
-    SPI_DRV8711_Write (CTRL_Register_ADDR, drv8711_ctrl_value);
-    return tmp0;		
+		
+		pPrivate->CTRL_RegValue.structReg.MODE = iRegCfg;
+		WriteSPI(&pPrivate->hSPI, CTRL_REG_ADDR, pPrivate->CTRL_RegValue.iRegValue);
+		
+    return true;		
+}
+
+bool DRV8711_SetTorque(PrivateBlock *pPrivate, uint8_t iCfg)
+{	
+		pPrivate->TORQUE_RegValue.structReg.TORQUE = iCfg;
+		WriteSPI(&pPrivate->hSPI, TORQUE_REG_ADDR, pPrivate->TORQUE_RegValue.iRegValue);
+		
+    return true;		
+}
+
+bool DRV8711_SetSenseGain(PrivateBlock *pPrivate, uint8_t iCfg)
+{	
+	  uint8_t iRegCfg = 0;
+	
+    switch (iCfg)
+    {
+        case 5:
+						iRegCfg = 0x0; // 5倍增益
+            break;
+        case 10:
+						iRegCfg = 0x1; // 10倍增益
+            break;
+        case 20:
+						iRegCfg = 0x2; // 20倍增益
+            break;
+        case 40:
+						iRegCfg = 0x3; // 40倍增益
+            break;
+        default:
+						iRegCfg = 0x0;
+    }
+		pPrivate->CTRL_RegValue.structReg.ISGAIN = iRegCfg;
+		WriteSPI(&pPrivate->hSPI, TORQUE_REG_ADDR, pPrivate->TORQUE_RegValue.iRegValue);
+		
+    return true;		
 }
 	
