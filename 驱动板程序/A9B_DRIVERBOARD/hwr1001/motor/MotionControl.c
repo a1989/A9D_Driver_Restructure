@@ -32,11 +32,25 @@ static void SetAxisIndex(const uint8_t iBoardID, AxisEnum *iAxisIndex)
 		}
 }
 
-static void HomeAxisImmediately(PRIVATE_MEMBER_TYPE *pThisPrivate)
+void StopMotorImmediately(PRIVATE_MEMBER_TYPE *pThisPrivate)
 {
+		
+}
+
+static void HomeAxisImmediately(PRIVATE_MEMBER_TYPE *pThisPrivate, uint8_t iMotorID)
+{
+		PrivateBlock *pPrivate_t = NULL;
+	
+		if(NULL == pThisPrivate || NULL == Params_t)
+		{
+				printf("\r\nfunc:%s:block null pointer", __FUNCTION__);
+				return;
+		}		
+
+		pPrivate_t = (PrivateBlock *)pThisPrivate;
 		DEBUG_LOG("\r\nStart home axis")
 	
-		
+		pPrivate_t->pMotorControl_t->m_pHomeAxisImmediately();		
 }
 
 //添加一个电机

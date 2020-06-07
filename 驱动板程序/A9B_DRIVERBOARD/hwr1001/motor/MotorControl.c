@@ -246,3 +246,19 @@ static float CalcCurveForBlock(void)
 {
 	
 }
+
+static void ExeMotorControl(MotorControl *Block_t)
+{
+		//如果是电机Home命令
+		//朝Home方向走长距离
+		//检查到接触了Home限位开关,在中断里检测
+		//反方向走10mm
+		//以程序内规定的速度二次回零
+		//检查到二次接触限位开关,在中断里检测
+		//停止,修改位置,Home完成
+	
+		//如果是最大位置命令
+		//朝最大位置走长距离
+		//检查到接触了最大位置限位开关,在中断里检测
+		//停止,记录位置,完成
+}
