@@ -205,7 +205,9 @@ void CommandFromHostHandler(const uint8_t *pRawData, const uint8_t iDataLen)
 //				MotionBlock_t.m_SetMoveData();
 				break;
 			case HOME:
-				g_MotionBlock_t.m_pHomeAxisImmediately(g_MotionBlock_t.m_pThisPrivate);
+				#if HARDWARE_VERSION == CHENGDU_DESIGN || HARDWARE_VERSION == SHENZHEN_DESIGN_V1
+						g_MotionBlock_t.m_pHomeAxisImmediately(g_MotionBlock_t.m_pThisPrivate, 0, (pRawData[2] << 8 | pRawData[3]));
+				#endif
 				break;
 			case BOARD_RESET:
 				break;

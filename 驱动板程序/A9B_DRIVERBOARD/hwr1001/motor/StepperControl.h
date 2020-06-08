@@ -27,6 +27,8 @@ typedef struct
 		PRIVATE_MEMBER_TYPE *m_pThisPrivate;
 		void (*m_pSingleStepperPrepare)(AxisEnum eAxisIndex, float fDistance, float fSpeed);
 		void (*m_pPulse)();
+		void (*m_pSetPositionEnforce)(PRIVATE_MEMBER_TYPE *pPrivate, float fPosition);
+		void (*m_pStepperPrepare)(PRIVATE_MEMBER_TYPE *pPrivate, float fTarget, float fSpeed);
 }StepperControl;
 
 void StepperControlInit(StepperControl *Stepper_t, StepperParams *Params_t);

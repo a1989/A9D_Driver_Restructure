@@ -178,13 +178,13 @@ static bool WriteSPI(SPI_HandleTypeDef *hSPI, uint8_t iAddr, uint16_t iData)
 
 bool SetRegisterDefaultCTRL(PrivateBlock *pPrivate)
 {
-		pPrivate->CTRL_RegValue.structReg.ENBL = 0b0;
-		pPrivate->CTRL_RegValue.structReg.RDIR = 0b1;
-		pPrivate->CTRL_RegValue.structReg.RSTEP = 0b0;
-		pPrivate->CTRL_RegValue.structReg.MODE = 0b0100;
-		pPrivate->CTRL_RegValue.structReg.EXSTALL = 0b0;
-		pPrivate->CTRL_RegValue.structReg.ISGAIN = 0b00;
-		pPrivate->CTRL_RegValue.structReg.DTIME = 0b11;
+		pPrivate->CTRL_RegValue.structReg.ENBL = BIN_0;
+		pPrivate->CTRL_RegValue.structReg.RDIR = BIN_1;
+		pPrivate->CTRL_RegValue.structReg.RSTEP = BIN_0;
+		pPrivate->CTRL_RegValue.structReg.MODE = BIN_100;
+		pPrivate->CTRL_RegValue.structReg.EXSTALL = BIN_0;
+		pPrivate->CTRL_RegValue.structReg.ISGAIN = BIN_0;
+		pPrivate->CTRL_RegValue.structReg.DTIME = BIN_11;
 		
 		WriteSPI(&pPrivate->hSPI, CTRL_REG_ADDR, pPrivate->CTRL_RegValue.iRegValue);
 }
@@ -192,7 +192,7 @@ bool SetRegisterDefaultCTRL(PrivateBlock *pPrivate)
 bool SetRegisterDefaultTORQUE(PrivateBlock *pPrivate)
 {
 		pPrivate->TORQUE_RegValue.structReg.TORQUE = 0xFF;
-		pPrivate->TORQUE_RegValue.structReg.SIMPLTH = 0b001;
+		pPrivate->TORQUE_RegValue.structReg.SIMPLTH = BIN_1;
 		
 		WriteSPI(&pPrivate->hSPI, TORQUE_REG_ADDR, pPrivate->TORQUE_RegValue.iRegValue);		
 }
@@ -200,7 +200,7 @@ bool SetRegisterDefaultTORQUE(PrivateBlock *pPrivate)
 bool SetRegisterDefaultOFF(PrivateBlock *pPrivate)
 {
 		pPrivate->OFF_RegValue.structReg.TOFF = 0x40;
-		pPrivate->OFF_RegValue.structReg.PWMMODE = 0b1;
+		pPrivate->OFF_RegValue.structReg.PWMMODE = BIN_1;
 		
 		WriteSPI(&pPrivate->hSPI, OFF_REG_ADDR, pPrivate->OFF_RegValue.iRegValue);		
 }
@@ -208,36 +208,36 @@ bool SetRegisterDefaultOFF(PrivateBlock *pPrivate)
 bool SetRegisterDefaultBLANK(PrivateBlock *pPrivate)
 {
 		pPrivate->BLANK_RegValue.structReg.TBLANK = 0x40;
-		pPrivate->BLANK_RegValue.structReg.ABT = 0b1;
+		pPrivate->BLANK_RegValue.structReg.ABT = BIN_1;
 		
 		WriteSPI(&pPrivate->hSPI, BLANK_REG_ADDR, pPrivate->BLANK_RegValue.iRegValue);		
 }
 
 bool SetRegisterDefaultDECAY(PrivateBlock *pPrivate)
 {
-		pPrivate->DECAY_RegValue.structReg.TDECAY = 0x10;
-		pPrivate->DECAY_RegValue.structReg.DECMOD = 0b001;
+		pPrivate->DECAY_RegValue.structReg.TDECAY = BIN_10;
+		pPrivate->DECAY_RegValue.structReg.DECMOD = BIN_1;
 		
 		WriteSPI(&pPrivate->hSPI, DECAY_REG_ADDR, pPrivate->DECAY_RegValue.iRegValue);		
 }
 
 bool SetRegisterDefaultSTALL(PrivateBlock *pPrivate)
 {
-		pPrivate->STALL_RegValue.structReg.SDTHR = 0x10;
-		pPrivate->STALL_RegValue.structReg.SDCNT = 0b00;
-		pPrivate->STALL_RegValue.structReg.VDIV = 0b11;
+		pPrivate->STALL_RegValue.structReg.SDTHR = BIN_10;
+		pPrivate->STALL_RegValue.structReg.SDCNT = BIN_0;
+		pPrivate->STALL_RegValue.structReg.VDIV = BIN_11;
 	
 		WriteSPI(&pPrivate->hSPI, STALL_REG_ADDR, pPrivate->STALL_RegValue.iRegValue);		
 }
 
 bool SetRegisterDefaultDRIVE(PrivateBlock *pPrivate)
 {
-		pPrivate->DRIVE_RegValue.structReg.OCPTH = 0b01;
-		pPrivate->DRIVE_RegValue.structReg.OCPDEG = 0b10;
-		pPrivate->DRIVE_RegValue.structReg.TDRIVEN = 0b01;
-		pPrivate->DRIVE_RegValue.structReg.TDRIVEP = 0b01;
-		pPrivate->DRIVE_RegValue.structReg.IDRIVEN = 0b10;
-		pPrivate->DRIVE_RegValue.structReg.IDRIVEP = 0b10;
+		pPrivate->DRIVE_RegValue.structReg.OCPTH = BIN_1;
+		pPrivate->DRIVE_RegValue.structReg.OCPDEG = BIN_10;
+		pPrivate->DRIVE_RegValue.structReg.TDRIVEN = BIN_1;
+		pPrivate->DRIVE_RegValue.structReg.TDRIVEP = BIN_1;
+		pPrivate->DRIVE_RegValue.structReg.IDRIVEN = BIN_10;
+		pPrivate->DRIVE_RegValue.structReg.IDRIVEP = BIN_10;
 	
 		WriteSPI(&pPrivate->hSPI, DRIVE_REG_ADDR, pPrivate->DRIVE_RegValue.iRegValue);		
 }

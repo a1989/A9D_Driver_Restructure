@@ -2,6 +2,7 @@
 #include "includes.h"
 #include "usart.h"
 #include "Communication.h"
+#include "MotionControl.h"
 
 uint16_t time3_count = 0; //用于循环计数
 uint8_t led_task_cnt = 50;
@@ -16,6 +17,7 @@ uint8_t gCan_Receive_Flag = 0;
 extern EncoderType GetEncoder;
 
 extern CommunicationBlock 	g_Communication_t;
+extern MotionManageBlock 	g_MotionBlock_t;
 extern USART_Handle	USART_Handle_t;
 extern DevInfo 	DriverBoardInfo;
 
@@ -75,47 +77,47 @@ void HAL_UART_RxCpltCallback (UART_HandleTypeDef* huart) //串口中断回调函
 void HAL_TIM_PeriodElapsedCallback (TIM_HandleTypeDef *htim)		//10ms
 {
 
-	if (htim->Instance == htim4.Instance) //tim4 interrupt
-	{
-		time3_count++;
-		if ((time3_count % led_task_cnt ) == 0)
-		{
-			led_display_cnt_flag = 1;    // 1s 用于打印计时500ms
-		}
-		if ((time3_count % can_send_data_task_cnt) == 0)
-		{
-			can_send_data_cnt_flag = 1;    //100ms发送一次
-		}
-		/*
-		if ((time3_count % location_write_task_cnt) == 0)
-		{
-			location_write_cnt_flag = 1;    //1200ms发送一次
-		}
-		*/
-		if ((motor_limit_flag == 1) || (motor_limit_flag == 2))
-		{
-			if ((time3_count % motor_limit_cnt) == 0)
-			{
-				motor_limit_cnt_flag = 1;
-			}
-		}
-		if (time3_count > 65530)
-		{
-			time3_count = 0;
-		}
-		DevelopmentFramwork(); // 电机控制 周期10ms
-	}
-	if (htim->Instance == htim3.Instance) //tim3 interrupt
-	{
-		if (htim->Instance->CR1 & 0x0010) //小心注意
-		{
-			GetEncoder.rcnt3 -= 1;
-		}
-		else
-		{
-			GetEncoder.rcnt3 += 1;
-		}
-	}
+//	if (htim->Instance == htim4.Instance) //tim4 interrupt
+//	{
+//		time3_count++;
+//		if ((time3_count % led_task_cnt ) == 0)
+//		{
+//			led_display_cnt_flag = 1;    // 1s 用于打印计时500ms
+//		}
+//		if ((time3_count % can_send_data_task_cnt) == 0)
+//		{
+//			can_send_data_cnt_flag = 1;    //100ms发送一次
+//		}
+//		/*
+//		if ((time3_count % location_write_task_cnt) == 0)
+//		{
+//			location_write_cnt_flag = 1;    //1200ms发送一次
+//		}
+//		*/
+//		if ((motor_limit_flag == 1) || (motor_limit_flag == 2))
+//		{
+//			if ((time3_count % motor_limit_cnt) == 0)
+//			{
+//				motor_limit_cnt_flag = 1;
+//			}
+//		}
+//		if (time3_count > 65530)
+//		{
+//			time3_count = 0;
+//		}
+//		DevelopmentFramwork(); // 电机控制 周期10ms
+//	}
+//	if (htim->Instance == htim3.Instance) //tim3 interrupt
+//	{
+//		if (htim->Instance->CR1 & 0x0010) //小心注意
+//		{
+//			GetEncoder.rcnt3 -= 1;
+//		}
+//		else
+//		{
+//			GetEncoder.rcnt3 += 1;
+//		}
+//	}
 	if (htim->Instance == htim1.Instance) //tim1 interrupt
 	{
 
@@ -198,14 +200,25 @@ void HAL_TIM_OC_DelayElapsedCallback (TIM_HandleTypeDef *htim)
 //		MotionBlock_t.GetEncoderStep();
 		//获取限位开关的值,接触时停,比较输出值设置为比较大的数,即降为慢速,防止怕断出是杂波干扰后以高速无法再启动
 		
-		uint16_t count;
-		
-		count =__HAL_TIM_GET_COUNTER (&StepMotor_TIM);
-		__HAL_TIM_SET_COMPARE (&StepMotor_TIM, TIM_CHANNEL_1, (uint16_t)(count + Toggle_Pulse));
+//		uint16_t count;
+//		
+//		count =__HAL_TIM_GET_COUNTER (&StepMotor_TIM);
+//		__HAL_TIM_SET_COMPARE (&StepMotor_TIM, TIM_CHANNEL_1, (uint16_t)(count + Toggle_Pulse));
 	
 	
 //		tim_Pulse_count++;
 //		StepMotor_Pulse_cnt = tim_Pulse_count / (motor_step_value * 2);
+	
+			uint16_t iCount;
+			uint16_t iToggleValue;
+			if(g_MotionBlock_t.m_pGetMotorMoveParamByTIM(g_MotionBlock_t.m_pThisPrivate, htim, &iToggleValue))
+			{
+					return;
+			}
+			
+			iCount =__HAL_TIM_GET_COUNTER (htim);
+			__HAL_TIM_SET_COMPARE (&StepMotor_TIM, TIM_CHANNEL_1, (uint16_t)(iCount + Toggle_Pulse));
+			
 }
 
 //void HAL_GPIO_EXTI_Callback (uint16_t GPIO_Pin)

@@ -8,6 +8,7 @@
 typedef struct
 {
 		MotorControl *pMotorControl_t;
+		TIM_HandleTypeDef OutputTIM;
 		char *strType;
 }PrivateBlock;
 
@@ -37,11 +38,11 @@ void StopMotorImmediately(PRIVATE_MEMBER_TYPE *pThisPrivate)
 		
 }
 
-static void HomeAxisImmediately(PRIVATE_MEMBER_TYPE *pThisPrivate, uint8_t iMotorID)
+static void HomeAxisImmediately(PRIVATE_MEMBER_TYPE *pThisPrivate, uint8_t iMotorID, uint32_t iSpeed)
 {
 		PrivateBlock *pPrivate_t = NULL;
 	
-		if(NULL == pThisPrivate || NULL == Params_t)
+		if(NULL == pThisPrivate)
 		{
 				printf("\r\nfunc:%s:block null pointer", __FUNCTION__);
 				return;
@@ -50,7 +51,7 @@ static void HomeAxisImmediately(PRIVATE_MEMBER_TYPE *pThisPrivate, uint8_t iMoto
 		pPrivate_t = (PrivateBlock *)pThisPrivate;
 		DEBUG_LOG("\r\nStart home axis")
 	
-		pPrivate_t->pMotorControl_t->m_pHomeAxisImmediately();		
+		pPrivate_t->pMotorControl_t->m_pHomeAxisImmediately(pPrivate_t->pMotorControl_t->m_pThisPrivate, iMotorID, iSpeed);		
 }
 
 //添加一个电机
@@ -115,7 +116,25 @@ bool MotionBlockInit(MotionManageBlock *Block_t)
 		return true;
 }
 
+bool GetMotorMoveParamByTIM(PRIVATE_MEMBER_TYPE *pThisPrivate, TIM_HandleTypeDef *htim, uint16_t *iData)
+{
+		PrivateBlock *pPrivate_t = NULL;
+	
+		if(NULL == pThisPrivate || NULL == htim)
+		{
+				printf("\r\nfunc:%s:block null pointer", __FUNCTION__);
+				return false;
+		}		
 
+		pPrivate_t = (PrivateBlock *)pThisPrivate;
+		
+		DEBUG_LOG("\r\nDBG Add a motor")
+		
+		if(pPrivate_t->pMotorControl_t->m_pGetMotorMoveParamByTIM(pPrivate_t->pMotorControl_t->m_pThisPrivate, htim, iData))
+		{
+				return false;
+		}
+}
 
 void AddMotorLimitSwitch(PRIVATE_MEMBER_TYPE *pThisPrivate, MotorParams *Params_t)
 {

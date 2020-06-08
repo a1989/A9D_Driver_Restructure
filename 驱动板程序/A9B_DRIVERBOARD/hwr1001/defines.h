@@ -17,6 +17,8 @@
 																				printf(strParams, ##__VA_ARGS__);\
 																		}
 
+#define MAX_LENGTH	3000		//mm																		
+
 typedef struct
 {
 		uint8_t iMajorVersion;
@@ -182,6 +184,13 @@ typedef union
 		float fFloatData;
 }unData;
 
+typedef enum
+{
+		eNEG_LIMIT = 0,
+		eZERO_LIMIT,
+		ePOS_LIMIT
+}eLimitType;
+
 #define HEART_BEAT_DATA		0x81
 
 #define X_AXIS_INDEX		0
@@ -200,6 +209,23 @@ typedef union
 		#define ENCODER_LINES		1000
 		#define ENCODER_MULTIPLY		4
 #endif
+
+#define BIN_0			0x0
+#define BIN_1			0x1
+#define BIN_10		0x2
+#define BIN_11		0x3
+#define BIN_100		0x4
+#define BIN_101		0x5
+#define BIN_110		0x6
+#define BIN_111		0x7
+#define BIN_1000	0x8
+#define BIN_1001	0x9
+#define BIN_1010	0xA
+#define BIN_1011	0xB
+#define BIN_1100	0xC
+#define BIN_1101	0xD
+#define BIN_1110	0xE
+#define BIN_1111	0xF
 
 #endif
 

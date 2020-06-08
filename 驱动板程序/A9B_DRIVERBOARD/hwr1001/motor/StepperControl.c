@@ -1,10 +1,18 @@
 #include "StepperControl.h"
 #include "DRV8711_Operation.h"
 #include <stdlib.h>
+#include "tim.h"
+
+typedef struct
+{
+		float fCurrentPos;
+		float fSpeed;
+}StepperMoveParams;
 
 typedef struct
 {
 		VOID_HandleTypeDef *hHandle;
+		TIM_HandleTypeDef hTIM;
 		char *strType;
 }PrivateBlock;
 
@@ -32,7 +40,25 @@ typedef struct
 //{9950,199}
 //};
 
-void SingleStepperPrepare(AxisEnum eAxisIndex, float fDistance, float fSpeed)
+void StopStepperModerate(PrivateBlock *pPrivate)
+{
+		PrivateBlock *pPrivate_t = (PrivateBlock *)pPrivate;
+	
+		if(NULL == pPrivate_t)
+		{
+				printf("\r\nfunc:%s,null pointer", __FUNCTION__);				
+				return;
+		}	
+
+		HAL_TIM_OC_Stop_IT (&pPrivate_t->hTIM, TIM_CHANNEL_1);
+}
+
+void SingleStepperPrepare(PrivateBlock *pPrivate)
+{
+		
+}
+
+static float CalcCurveForBlock(void)
 {
 		
 }
@@ -72,8 +98,20 @@ void StepperControlInit(StepperControl *pStepper_t, StepperParams *pParams_t)
 					pDRV8711_Params.iSubdivisionCfg = pParams_t->iSubdivisionCfg;
 					
 					DRV8711_Init(pDRV8711, &pDRV8711_Params);
+					
 					break;
 				case eTMC2590:
+					break;
+				default:
+					break;
+		}
+		
+		switch(pParams_t->eMotorTIM)
+		{
+				case eTIM1:
+					break;
+				case eTIM2:
+					MX_TIM_OC_Init(&pPrivate->hTIM, TIM2);
 					break;
 				default:
 					break;

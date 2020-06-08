@@ -336,6 +336,50 @@ void HAL_TIM_Encoder_MspDeInit(TIM_HandleTypeDef* tim_encoderHandle)
   }
 } 
 
+void MX_TIM_OC_Init(TIM_HandleTypeDef *hTIM, TIM_TypeDef *TIM_t)
+{
+  TIM_ClockConfigTypeDef sClockSourceConfig = {0};
+  TIM_MasterConfigTypeDef sMasterConfig = {0};
+  TIM_OC_InitTypeDef sConfigOC = {0};
+
+  hTIM->Instance = TIM_t;
+  hTIM->Init.Prescaler = 35;
+  hTIM->Init.CounterMode = TIM_COUNTERMODE_UP;
+  hTIM->Init.Period = 0xFFFF;
+  hTIM->Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
+  hTIM->Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
+  if (HAL_TIM_Base_Init(hTIM) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  sClockSourceConfig.ClockSource = TIM_CLOCKSOURCE_INTERNAL;
+  if (HAL_TIM_ConfigClockSource(hTIM, &sClockSourceConfig) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  if (HAL_TIM_OC_Init(hTIM) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  sMasterConfig.MasterOutputTrigger = TIM_TRGO_RESET;
+  sMasterConfig.MasterSlaveMode = TIM_MASTERSLAVEMODE_DISABLE;
+  if (HAL_TIMEx_MasterConfigSynchronization(hTIM, &sMasterConfig) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  sConfigOC.OCMode = TIM_OCMODE_TOGGLE;
+  sConfigOC.Pulse = 65530;
+  sConfigOC.OCPolarity = TIM_OCPOLARITY_HIGH;
+  sConfigOC.OCFastMode = TIM_OCFAST_DISABLE;
+  if (HAL_TIM_OC_ConfigChannel(hTIM, &sConfigOC, TIM_CHANNEL_1) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  HAL_TIM_MspPostInit(hTIM);
+
+	HAL_TIM_OC_Stop_IT (hTIM, TIM_CHANNEL_1);
+}
+
 #elif MOTOR_DRIVER == SHENZHEN_DESIGN_V1
 
 //PB6	-> Driver Step Pin 		TIM4_CH1		
