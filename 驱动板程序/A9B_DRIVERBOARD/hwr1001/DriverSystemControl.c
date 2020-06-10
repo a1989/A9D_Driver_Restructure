@@ -29,6 +29,9 @@
 #include "DriverStorage.h"
 #include "dma.h"
 #include "usart.h"
+#include "gpio.h"
+#include "tim.h"
+#include "timer.h"
 
 /*系统功能分为四大部分:通信, 运动控制, 存储, 硬件操作*/
 //运动控制块,包含所有运动相关的操作, 使用前必须使用MotionBlockInit()初始化
@@ -43,10 +46,12 @@ DevInfo 	DriverBoardInfo;
 static void DataStructureInit(void)
 {
 		MotorParams MotorParams_t;
+		DRV8711_PinConfig DRV8711_PinConfig_t;
 		StepperSysParams StepperSysParams_t;
 		CommunicationParams ParamsCAN1;
 		StorageParams StorageParams_t;
 		StorageByteOptions ByteOptions_t;
+		LimitParams LimitParams_t;
 		uint32_t iStdId = 0x0;
 		DriverBoardInfo.iMajorVersion = VERSION_MAJOR;
 		DriverBoardInfo.iMinorVersion = VERSION_MINOR;
@@ -78,6 +83,7 @@ static void DataStructureInit(void)
 		}
 		
 		#if HARDWARE_VERSION == CHENGDU_DESIGN
+				MX_GPIO_Init();
 				MotorParams_t.pMotorSysParams = NULL;
 		
 				//配置电机参数,根据硬件,电机为带编码器的步进电机
@@ -96,16 +102,43 @@ static void DataStructureInit(void)
 				StepperSysParams_t.StepperParams_t.iSubdivisionCfg = ByteOptions_t.iData;
 		
 				//根据硬件配置步进电机和编码器参数
-				StepperSysParams_t.StepperParams_t.eConfigMode = eSPI1;		//SPI1方式
+				StepperSysParams_t.StepperParams_t.eConfigMode = eSPI2;		//SPI2方式
 				StepperSysParams_t.StepperParams_t.eDriver = eDRV8711;		//驱动为DRV8711
 				StepperSysParams_t.StepperParams_t.eMotorTIM = eTIM2;			//驱动使用的脉冲由TIM2发出
+				
+				DRV8711_PinConfig_t.CSPin.GPIO_Port = GPIOB;
+				DRV8711_PinConfig_t.CSPin.GPIO_Pin = GPIO_PIN_12;
+				DRV8711_PinConfig_t.DirPin.GPIO_Port = GPIOA;
+				DRV8711_PinConfig_t.DirPin.GPIO_Pin = GPIO_PIN_1;
+				DRV8711_PinConfig_t.ResetPin.GPIO_Port = GPIOB;
+				DRV8711_PinConfig_t.ResetPin.GPIO_Pin = GPIO_PIN_1;
+				DRV8711_PinConfig_t.SleepPin.GPIO_Port = GPIOB;
+				DRV8711_PinConfig_t.SleepPin.GPIO_Pin = GPIO_PIN_0;
+				
+				StepperSysParams_t.StepperParams_t.pDriverPinConfig = &DRV8711_PinConfig_t;				
 				StepperSysParams_t.EncoderParmas_t.eEncoderTIM = eTIM3;		//编码器使用TIM3计数
 				StepperSysParams_t.EncoderParmas_t.iEncoderLines = ENCODER_LINES;		//码盘为1000线
 				StepperSysParams_t.EncoderParmas_t.iMultiplication = ENCODER_MULTIPLY;		//编码器4倍频
+				StepperSysParams_t.StepperParams_t.fFeedBackRatio = (float)(ENCODER_LINES * ENCODER_MULTIPLY) / (StepperSysParams_t.StepperParams_t.iSubdivisionCfg * 200);
 				
 				MotorParams_t.pMotorSysParams = &StepperSysParams_t;
 				//新增一个电机
 				g_MotionBlock_t.m_pAddMotor(g_MotionBlock_t.m_pThisPrivate, &MotorParams_t);
+				//为当前电机添加零点限位开关
+				LimitParams_t.eFunc = eZero;
+				LimitParams_t.GPIO_Port = GPIOB;
+				LimitParams_t.GPIO_Pin = GPIO_PIN_9;
+				LimitParams_t.iMotorBelong = 0;
+				g_MotionBlock_t.m_pAddMotorLimit(g_MotionBlock_t.m_pThisPrivate, &LimitParams_t);
+				
+				//为当前电机添加正向限位开关
+				LimitParams_t.eFunc = ePositive;
+				LimitParams_t.GPIO_Port = GPIOB;
+				LimitParams_t.GPIO_Pin = GPIO_PIN_8;
+				LimitParams_t.iMotorBelong = 0;
+				g_MotionBlock_t.m_pAddMotorLimit(g_MotionBlock_t.m_pThisPrivate, &LimitParams_t);
+//				MX_TIM4_Init();
+//				TIM4_IT_Interrupt_Switch (1);
 		#elif HARDWARE_VERSION == SHENZHEN_DESIGN_V1
 				
 		#endif
@@ -125,6 +158,7 @@ static void DataStructureInit(void)
 				iStdId = ByteOptions_t.iData;
 				ParamsCAN1.pParam = &iStdId;	
 				DriverBoardInfo.iDriverID = ByteOptions_t.iData;
+				DEBUG_LOG("\r\nRead Board ID:0x%x", DriverBoardInfo.iDriverID);
 				g_Communication_t.m_pAddCommunicationInterface(g_Communication_t.m_pThisPrivate, ParamsCAN1);
 		#elif HARDWARE_VERSION == SHENZHEN_DESIGN_V1
 		#endif
@@ -158,14 +192,24 @@ void QueryFromHostHandler(const uint8_t *pRawData, const uint8_t iRawDataLen)
 		uint8_t arrDataBuffer[16];
 		uint8_t iDataLen = 0;
 	
+		//开关量状态和限位值
+		bool bSwitchValue0 = false;
+		bool bSwitchValue1 = false;
+		uint8_t iLimitValue = 0;
+	
+		//先组合数据
+		arrDataBuffer[0] = 0x0;
+		arrDataBuffer[1] = 0x0;
+		arrDataBuffer[2] = pRawData[0];	
 		switch((QueryDataObj)pRawData[0])
 		{
 			//请求版本号
 			case VERSION:		
 				DEBUG_LOG("\r\nQuerry Version")
-				arrDataBuffer[0] = DriverBoardInfo.iMajorVersion;
-				arrDataBuffer[1] = DriverBoardInfo.iMinorVersion;
-				iDataLen = 2;
+				arrDataBuffer[3] = 2;
+				arrDataBuffer[4] = DriverBoardInfo.iMajorVersion;
+				arrDataBuffer[5] = DriverBoardInfo.iMinorVersion;
+				iDataLen = 6;
 				break;
 			//请求细分设置
 			case SUBDIVISION:
@@ -186,7 +230,25 @@ void QueryFromHostHandler(const uint8_t *pRawData, const uint8_t iRawDataLen)
 				break;
 			//请求限位状态
 			case LIMIT_STATUS:
+				DEBUG_LOG("\r\nQuerry Limits Status")
+				g_MotionBlock_t.m_pReadMotorLimit(g_MotionBlock_t.m_pThisPrivate, 0, eZero, &bSwitchValue0);
+				g_MotionBlock_t.m_pReadMotorLimit(g_MotionBlock_t.m_pThisPrivate, 0, ePositive, &bSwitchValue1);
+				if(bSwitchValue0 && (!bSwitchValue1))
+				{
+						iLimitValue = 1;
+				}
+				else if(bSwitchValue1 && (!bSwitchValue0))
+				{
+						iLimitValue = 2;
+				}
+				else
+				{
+						iLimitValue = 0;
+				}
 				
+				arrDataBuffer[3] = 1;
+				arrDataBuffer[4] = iLimitValue;
+				iDataLen = 5;
 				break;
 			case REALTIME_CURRENT:
 				break;			
@@ -202,11 +264,18 @@ void CommandFromHostHandler(const uint8_t *pRawData, const uint8_t iDataLen)
 		{
 			case MOVE:
 				//将运动数据写入运动控制块
-//				MotionBlock_t.m_SetMoveData();
+				if(4 == pRawData[1])
+				{
+						g_MotionBlock_t.m_pSetMotorMoveData(g_MotionBlock_t.m_pThisPrivate, 0, ((uint32_t)pRawData[2] << 8 | pRawData[3]), ((uint32_t)pRawData[4] << 8 | pRawData[5]));
+				}
 				break;
 			case HOME:
+				DEBUG_LOG("\r\nDBG CMD Home")
 				#if HARDWARE_VERSION == CHENGDU_DESIGN || HARDWARE_VERSION == SHENZHEN_DESIGN_V1
-						g_MotionBlock_t.m_pHomeAxisImmediately(g_MotionBlock_t.m_pThisPrivate, 0, (pRawData[2] << 8 | pRawData[3]));
+						if(2 == pRawData[1])
+						{
+								g_MotionBlock_t.m_pHomeAxisImmediately(g_MotionBlock_t.m_pThisPrivate, 0, ((uint32_t)pRawData[2] << 8 | pRawData[3]));
+						}
 				#endif
 				break;
 			case BOARD_RESET:
@@ -231,8 +300,9 @@ void CommandFromHostHandler(const uint8_t *pRawData, const uint8_t iDataLen)
 //心跳
 void HeartBeatHandler(uint8_t *pData, uint8_t iDataLen, CommunicationType eType)
 {
-		uint8_t iData = HEART_BEAT_DATA;
-		g_Communication_t.m_pSlaveDataPrepare(g_Communication_t.m_pThisPrivate, &iData, iDataLen, eType);
+		uint8_t *iData = pData;
+		*iData = HEART_BEAT_DATA;
+		g_Communication_t.m_pSlaveDataPrepare(g_Communication_t.m_pThisPrivate, iData, iDataLen, eType);
 }
 
 //解析消息类型
@@ -246,27 +316,61 @@ static RecvDataType RecvDataAnalyze(const uint8_t *pRawData, const uint8_t iRawD
 		}		
 		else
 		{
-				switch(pRawData[0])
+//				switch(pRawData[0])
+//				{
+//						case 0x81:
+//							memcpy(pData, pRawData, 1);
+//							*iDataLen = 1;
+//							eType = HEARTBEAT;
+//							break;
+//						case 0x01:
+//							memcpy(pData, pRawData + 2, 1);
+//							*iDataLen = iRawDataLen - 2;
+//							eType = CMD;
+//							break;
+//						case 0x02:
+//							memcpy(pData, pRawData + 2, 1);
+//							eType = QUERY;
+//							break;
+//						case 0x03:
+//							eType = UPDATE;
+//							break;
+//				}
+//				DEBUG_LOG("\r\nstart data analyze")
+				
+				if(0x81 == pRawData[0])
 				{
-						case 0x81:
-							memcpy(pData, pRawData, 1);
-							*iDataLen = 1;
-							eType = HEARTBEAT;
-							break;
-						case 0x01:
-							memcpy(pData, pRawData + 2, 1);
-							*iDataLen = iRawDataLen - 2;
-							eType = CMD;
-							break;
-						case 0x02:
-							memcpy(pData, pRawData + 2, 1);
-							eType = QUERY;
-							break;
-						case 0x03:
-							eType = UPDATE;
-							break;
+						memcpy(pData, pRawData, 1);
+						*iDataLen = 1;
+						eType = HEARTBEAT;						
+				}
+				else
+				{
+						if(pRawData[2] <= 0x08)
+						{
+//								DEBUG_LOG("\r\npRawData:0x%x,len:%d", *(pRawData + 2), (iRawDataLen - 2))
+								memcpy(pData, (pRawData + 2), (iRawDataLen - 2));								
+								*iDataLen = iRawDataLen - 2;
+								eType = QUERY;								
+						}
+						else if((pRawData[2] >= 0x08) && (pRawData[2] <= 0x22))
+						{
+								memcpy(pData, pRawData + 2, iRawDataLen - 2);
+								*iDataLen = iRawDataLen - 2;
+								eType = CMD;								
+						}
+						else if(pRawData[2] >= 0xA0)
+						{
+								
+						}
+						else
+						{
+							
+						}
 				}
 		}
+		
+//		DEBUG_LOG("\r\nend data analyze")
 		
 		return eType;
 }
@@ -291,13 +395,15 @@ bool ProcessMessage(const uint8_t *pRawData, const uint8_t iRawDataLen)
 		{
 			case HEARTBEAT:
 				DEBUG_LOG("\r\nHeart Beat Process")
-				HeartBeatHandler(pData, iDataLen, eCAN1);
+				pData[1] = DriverBoardInfo.iDriverID;
+				HeartBeatHandler(pData, iDataLen + 1, eCAN1);
 				break;
 			case ASSEMBLE:
 				//组合命令
 				bClearBuffer = false;
 				break;
 			case QUERY:
+				DEBUG_LOG("\r\nQuery Process")
 				QueryFromHostHandler(pData, iDataLen);
 				break;
 			case CMD:
@@ -316,6 +422,7 @@ bool ProcessMessage(const uint8_t *pRawData, const uint8_t iRawDataLen)
 		}
 }
 
+
 //主程序
 void DriverSystemRun(void)
 {
@@ -331,6 +438,7 @@ void DriverSystemRun(void)
 		}
 		
 		g_Communication_t.m_pExeBlock(g_Communication_t.m_pThisPrivate);
+		g_MotionBlock_t.m_ExeMotionBlcok(g_MotionBlock_t.m_pThisPrivate);
 		//
 		
 		//根据当前的状态确定LED的闪烁情况

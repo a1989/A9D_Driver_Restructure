@@ -34,9 +34,14 @@
 /* USER CODE BEGIN Private defines */
 
 /* USER CODE END Private defines */
+#define READ_GPIO_PIN(GPIO_PORT, PIN) 	HAL_GPIO_ReadPin (GPIO_PORT, PIN)
+#define SET_PIN(GPIO_PORT, PIN)		HAL_GPIO_WritePin (GPIO_PORT, PIN, GPIO_PIN_SET)
+#define RESET_PIN(GPIO_PORT, PIN)		HAL_GPIO_WritePin (GPIO_PORT, PIN, GPIO_PIN_RESET)
 
 void MX_GPIO_Init(void);
-
+void GPIO_InitInputNoPull(GPIO_TypeDef *GPIO_Port, uint16_t GPIO_Pin);
+void GPIO_InitPullDown(GPIO_TypeDef *GPIO_Port, uint16_t GPIO_Pin);
+void GPIO_InitNoPull(GPIO_TypeDef *GPIO_Port, uint16_t GPIO_Pin);
 /* USER CODE BEGIN Prototypes */
 
 /* USER CODE END Prototypes */

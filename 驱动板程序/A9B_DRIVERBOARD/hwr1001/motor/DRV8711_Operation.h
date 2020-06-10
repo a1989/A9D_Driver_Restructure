@@ -9,6 +9,7 @@ typedef struct
 		DriverConfigMode eMode;
 		uint8_t iCurrentCfg;
 		uint16_t iSubdivisionCfg;
+		void *pDriverPinConfig;
 }DRV8711_Params;
 
 typedef struct

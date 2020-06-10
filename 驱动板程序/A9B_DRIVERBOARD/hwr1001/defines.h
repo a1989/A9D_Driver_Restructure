@@ -117,6 +117,9 @@ typedef struct
 		uint8_t iCurrentCfg;
 		PulseTIM eMotorTIM;
 		float fCurrent;		
+		void *pDriverPinConfig;
+		float fFeedBackRatio;
+		float fPitch;
 }StepperParams;
 
 typedef struct
@@ -191,6 +194,15 @@ typedef enum
 		ePOS_LIMIT
 }eLimitType;
 
+typedef struct
+{
+		GPIO_TypeDef *GPIO_Port;
+		uint16_t GPIO_Pin;		
+}GPIO_Config;
+
+#define min(a, b)  ((a) < (b) ? (a) : (b))
+#define max(a, b)  ((a) > (b) ? (a) : (b))
+
 #define HEART_BEAT_DATA		0x81
 
 #define X_AXIS_INDEX		0
@@ -208,6 +220,16 @@ typedef enum
 		
 		#define ENCODER_LINES		1000
 		#define ENCODER_MULTIPLY		4
+		
+		#define MOTOR_START_SPEED		(ENCODER_LINES * ENCODER_MULTIPLY / 20)
+		#define MOTOR_END_SPEED		(ENCODER_LINES * ENCODER_MULTIPLY / 20)
+		typedef struct
+		{
+				GPIO_Config ResetPin;
+				GPIO_Config SleepPin;
+				GPIO_Config CSPin;
+				GPIO_Config DirPin;
+		}DRV8711_PinConfig;
 #endif
 
 #define BIN_0			0x0

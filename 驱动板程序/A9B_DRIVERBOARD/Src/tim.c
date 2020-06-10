@@ -380,6 +380,39 @@ void MX_TIM_OC_Init(TIM_HandleTypeDef *hTIM, TIM_TypeDef *TIM_t)
 	HAL_TIM_OC_Stop_IT (hTIM, TIM_CHANNEL_1);
 }
 
+void MX_TIM_Encoder_Init(TIM_HandleTypeDef *hTIM, TIM_TypeDef *TIM_t)
+{
+  TIM_Encoder_InitTypeDef sConfig = {0};
+  TIM_MasterConfigTypeDef sMasterConfig = {0};
+
+  hTIM->Instance = TIM3;
+  hTIM->Init.Prescaler = 0;
+  hTIM->Init.CounterMode = TIM_COUNTERMODE_UP;
+  hTIM->Init.Period = 0xFFFF;
+  hTIM->Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
+  hTIM->Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
+  sConfig.EncoderMode = TIM_ENCODERMODE_TI12;
+  sConfig.IC1Polarity = TIM_ICPOLARITY_RISING;
+  sConfig.IC1Selection = TIM_ICSELECTION_DIRECTTI;
+  sConfig.IC1Prescaler = TIM_ICPSC_DIV1;
+  sConfig.IC1Filter = 5;
+  sConfig.IC2Polarity = TIM_ICPOLARITY_RISING;
+  sConfig.IC2Selection = TIM_ICSELECTION_DIRECTTI;
+  sConfig.IC2Prescaler = TIM_ICPSC_DIV1;
+  sConfig.IC2Filter = 5;
+  if (HAL_TIM_Encoder_Init(hTIM, &sConfig) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  sMasterConfig.MasterOutputTrigger = TIM_TRGO_RESET;
+  sMasterConfig.MasterSlaveMode = TIM_MASTERSLAVEMODE_DISABLE;
+  if (HAL_TIMEx_MasterConfigSynchronization(hTIM, &sMasterConfig) != HAL_OK)
+  {
+    Error_Handler();
+  }
+
+}
+
 #elif MOTOR_DRIVER == SHENZHEN_DESIGN_V1
 
 //PB6	-> Driver Step Pin 		TIM4_CH1		

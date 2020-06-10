@@ -7,14 +7,16 @@ typedef struct
 {
 		PRIVATE_MEMBER_TYPE *m_pThisPrivate;
 	
-		void (*m_pHomeAxis)(PRIVATE_MEMBER_TYPE *pThisPrivate, MoveParams *pParams_t);
-		void (*m_pHomeAxisImmediately)(PRIVATE_MEMBER_TYPE *pThisPrivate, uint8_t iMotorID, uint32_t iSpeed);
+//		void (*m_pHomeAxis)(PRIVATE_MEMBER_TYPE *pThisPrivate, MoveParams *pParams_t);
+		bool (*m_pMotorHomeImmediately)(PRIVATE_MEMBER_TYPE *pThisPrivate, uint8_t iMotorID, float fSpeed);
 		bool (*m_pAddMotor)(PRIVATE_MEMBER_TYPE *pThisPrivate, MotorParams *pParams_t);
 		void (*m_pExecuteBlock)(PRIVATE_MEMBER_TYPE *pThisPrivate);
+		bool (*m_pSetMoveParams)(PRIVATE_MEMBER_TYPE *pThisPrivate, uint8_t iMotorID, float fDist, float fSpeed);
 		uint16_t (*m_pGetMotorPulseParamByID)(uint8_t iMotorID);
 		uint16_t (*m_pGetMotorMoveParamByTIM)(PRIVATE_MEMBER_TYPE *pThisPrivate, TIM_HandleTypeDef *htim, uint16_t *iData);
-		void (*m_pAddLimits)(PRIVATE_MEMBER_TYPE *pThisPrivate, uint8_t iMotorID, eLimitType eLimit);
-
+		bool (*m_pAddLimits)(PRIVATE_MEMBER_TYPE *pThisPrivate, LimitParams *Params_t);
+		bool (*m_pReadLimitByID)(PRIVATE_MEMBER_TYPE *pThisPrivate, uint8_t iMotorID, LimitFunction eFunc, bool *bStatu);
+		void (*m_pExeMotorControl)(PRIVATE_MEMBER_TYPE *pThisPrivate);
 }MotorControl;
 
 //初始化运动节点结构,本结构私有成员指针

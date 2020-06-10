@@ -3,6 +3,7 @@
 #include "usart.h"
 #include "Communication.h"
 #include "MotionControl.h"
+//#include "stdlib.h"
 
 uint16_t time3_count = 0; //用于循环计数
 uint8_t led_task_cnt = 50;
@@ -14,12 +15,64 @@ uint8_t location_write_task_cnt = 60;
 uint8_t motor_limit_cnt = 60;	//zyg 50
 uint8_t gCan_Receive_Flag = 0;
 
-extern EncoderType GetEncoder;
+//extern EncoderType GetEncoder;
 
 extern CommunicationBlock 	g_Communication_t;
 extern MotionManageBlock 	g_MotionBlock_t;
 extern USART_Handle	USART_Handle_t;
 extern DevInfo 	DriverBoardInfo;
+
+IncEncoderVar IncEncoder0;
+
+//编码器操作表
+
+//void RegiserIncEncoderInt(void *pPrivate, void (*m_pInterruptHandler)(void *m_pThisPrivate, TIM_HandleTypeDef *hTIM))
+//{
+//		IncEncoderTable *pEncoderNode = (IncEncoderTable *)malloc(sizeof(IncEncoderTable));
+//		IncEncoderTable *pNode;
+//	
+//		pEncoderNode->pPrivate = pPrivate;
+//		pEncoderNode->m_pHandler = m_pInterruptHandler;
+//		pEncoderNode->pNext = NULL;
+//	
+//		if(g_IncEncoderTable == NULL)
+//		{
+//				g_IncEncoderTable = pEncoderNode;
+//		}
+//		else
+//		{
+//				pNode = g_IncEncoderTable;
+//				while(pNode->pNext != NULL)
+//				{
+//						pNode = pNode->pNext;
+//				}
+//				pNode->pNext = pEncoderNode;
+//		}
+//}
+
+//void RegiserStepperInt(void *pPrivate, void (*m_pInterruptHandler)(void *m_pThisPrivate, TIM_HandleTypeDef *hTIM, int32_t iPos))
+//{
+//		StepperTable *pStepperNode = (StepperTable *)malloc(sizeof(StepperTable));
+//		StepperTable *pNode;
+//	
+//		pStepperNode->pPrivate = pPrivate;
+//		pStepperNode->m_pHandler = m_pInterruptHandler;
+//		pStepperNode->pNext = NULL;
+//	
+//		if(pStepperNode == NULL)
+//		{
+//				g_StepperTable = pStepperNode;
+//		}
+//		else
+//		{
+//				pNode = g_StepperTable;
+//				while(pNode->pNext != NULL)
+//				{
+//						pNode = pNode->pNext;
+//				}
+//				pNode->pNext = pStepperNode;
+//		}
+//}
 
 uint8_t Uart_Receive_Interrupt_Switch (UART_HandleTypeDef* huart, uint8_t* uart_receive_data)
 {
@@ -76,7 +129,7 @@ void HAL_UART_RxCpltCallback (UART_HandleTypeDef* huart) //串口中断回调函
 //tim call back
 void HAL_TIM_PeriodElapsedCallback (TIM_HandleTypeDef *htim)		//10ms
 {
-
+//		IncEncoderTable *pEncoder = g_IncEncoderTable;
 //	if (htim->Instance == htim4.Instance) //tim4 interrupt
 //	{
 //		time3_count++;
@@ -107,21 +160,45 @@ void HAL_TIM_PeriodElapsedCallback (TIM_HandleTypeDef *htim)		//10ms
 //		}
 //		DevelopmentFramwork(); // 电机控制 周期10ms
 //	}
-//	if (htim->Instance == htim3.Instance) //tim3 interrupt
-//	{
-//		if (htim->Instance->CR1 & 0x0010) //小心注意
+//		if (htim->Instance == htim3.Instance) //tim3 interrupt
 //		{
-//			GetEncoder.rcnt3 -= 1;
+//			if (htim->Instance->CR1 & 0x0010) //小心注意
+//			{
+////				GetEncoder.rcnt3 -= 1;
+//			}
+//			else
+//			{
+////				GetEncoder.rcnt3 += 1;
+//			}
 //		}
-//		else
+	
+//		if (htim->Instance == htim3.Instance) //tim3 interrupt
 //		{
-//			GetEncoder.rcnt3 += 1;
+//			if (htim->Instance->CR1 & 0x0010) //小心注意
+//			{
+//				GetEncoder.rcnt3 -= 1;
+//			}
+//			else
+//			{
+//				GetEncoder.rcnt3 += 1;
+//			}
+//		}	
+		
+//		while(pEncoder != NULL)
+//		{
+//				pEncoder->m_pHandler(pEncoder->pPrivate, htim);
+//				pEncoder = pEncoder->pNext;
 //		}
-//	}
-	if (htim->Instance == htim1.Instance) //tim1 interrupt
-	{
 
-	}
+		if (htim->Instance == htim4.Instance) //tim4 interrupt
+		{
+				
+		}
+		
+		if (htim->Instance == htim1.Instance) //tim1 interrupt
+		{
+
+		}
 }
 
 void HAL_CAN_ErrorCallback (CAN_HandleTypeDef* hcan)
@@ -211,13 +288,10 @@ void HAL_TIM_OC_DelayElapsedCallback (TIM_HandleTypeDef *htim)
 	
 			uint16_t iCount;
 			uint16_t iToggleValue;
-			if(g_MotionBlock_t.m_pGetMotorMoveParamByTIM(g_MotionBlock_t.m_pThisPrivate, htim, &iToggleValue))
-			{
-					return;
-			}
+			
 			
 			iCount =__HAL_TIM_GET_COUNTER (htim);
-			__HAL_TIM_SET_COMPARE (&StepMotor_TIM, TIM_CHANNEL_1, (uint16_t)(iCount + Toggle_Pulse));
+			__HAL_TIM_SET_COMPARE (&htim2, TIM_CHANNEL_1, (uint16_t)(iCount + 100));
 			
 }
 

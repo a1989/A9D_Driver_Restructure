@@ -1,5 +1,6 @@
 #include "DRV8711_Operation.h"
 #include <stdlib.h>
+#include <gpio.h>
 
 #define CTRL_REG_ADDR		0x00
 #define TORQUE_REG_ADDR		0x01
@@ -156,23 +157,71 @@ typedef struct
 		unRegSTALL STALL_RegValue;
 		unRegDRIVE DRIVE_RegValue;
 		unRegSTATUS STATUS_RegValue;
+		DRV8711_PinConfig PinConfig_t;
 }PrivateBlock;
 
-static bool WriteSPI(SPI_HandleTypeDef *hSPI, uint8_t iAddr, uint16_t iData)
+static bool WriteSPI(SPI_HandleTypeDef *hSPI, DRV8711_PinConfig *pPinConfig, uint8_t iAddr, uint16_t iData)
 {
-		uint8_t iSendBuffer[3];
-		uint8_t iRecvBuffer[3];
+		uint8_t iSendBuffer[2];
+		uint8_t iRecvBuffer[2];
+		HAL_StatusTypeDef eStatus;
 	
-		iSendBuffer[0] = iAddr;
-		iSendBuffer[1] = (iData >> 8) & 0xFF;
-		iSendBuffer[2] = iData & 0xFF;
+		iSendBuffer[0] = (iData >> 8) & 0xFF;
+		iSendBuffer[0] = iSendBuffer[0] | (iAddr << 4);
+		iSendBuffer[1] = iData & 0xFF;
+		
+		DEBUG_LOG("\r\nwrite spi:0x%02x%02x", iSendBuffer[0], iSendBuffer[1])
+		
+		SET_PIN(pPinConfig->CSPin.GPIO_Port, pPinConfig->CSPin.GPIO_Pin);
 	
-		if(HAL_OK != HAL_SPI_TransmitReceive (hSPI, iSendBuffer, iRecvBuffer, 3, 0xFFFFFF))
+		eStatus = HAL_SPI_TransmitReceive (hSPI, iSendBuffer, iRecvBuffer, 2, 0xFFFFFF);
+		if(HAL_OK != eStatus)
 		{
-				return false;
-			
+				printf("\r\nwrite 8711 spi failed:%02x", eStatus);
+				return false;			
 		}
 		
+		RESET_PIN(pPinConfig->CSPin.GPIO_Port, pPinConfig->CSPin.GPIO_Pin);
+		
+		return true;
+}
+
+static bool ReadSPI(SPI_HandleTypeDef *hSPI, DRV8711_PinConfig *pPinConfig, uint8_t iAddr, uint16_t *iData)
+{
+		uint8_t iSendBuffer[2];
+		uint8_t iRecvBuffer[2];
+		uint16_t iRecvData;
+		HAL_StatusTypeDef eStatus;
+		
+		iSendBuffer[0] = iAddr;
+		iSendBuffer[1] = 0xFF;
+		
+		DEBUG_LOG("\r\nwrite spi:0x%02x%02x", iSendBuffer[0], iSendBuffer[1])
+		
+		SET_PIN(pPinConfig->CSPin.GPIO_Port, pPinConfig->CSPin.GPIO_Pin);
+	
+		eStatus = HAL_SPI_TransmitReceive (hSPI, iSendBuffer, iRecvBuffer, 2, 0xFFFFFF);
+		if(HAL_OK != eStatus)
+		{
+				printf("\r\nwrite 8711 spi failed:%02x", eStatus);
+				return false;			
+		}
+		
+		RESET_PIN(pPinConfig->CSPin.GPIO_Port, pPinConfig->CSPin.GPIO_Pin);
+		
+		iRecvData = (((uint16_t)iSendBuffer[0]) << 8) | (iSendBuffer[1]);
+		*iData = iRecvData;
+		
+		return true;		
+}
+
+bool EnableMotor(PrivateBlock *pPrivate)
+{
+		pPrivate->CTRL_RegValue.structReg.ENBL = BIN_1;
+	
+		DEBUG_LOG("\r\nEnable motor:0x%x", pPrivate->CTRL_RegValue.iRegValue)
+	
+		WriteSPI(&pPrivate->hSPI, &pPrivate->PinConfig_t, CTRL_REG_ADDR, pPrivate->CTRL_RegValue.iRegValue);
 		return true;
 }
 
@@ -185,40 +234,60 @@ bool SetRegisterDefaultCTRL(PrivateBlock *pPrivate)
 		pPrivate->CTRL_RegValue.structReg.EXSTALL = BIN_0;
 		pPrivate->CTRL_RegValue.structReg.ISGAIN = BIN_0;
 		pPrivate->CTRL_RegValue.structReg.DTIME = BIN_11;
+	
+		DEBUG_LOG("\r\nConfig CTRL Reg:0x%x", pPrivate->CTRL_RegValue.iRegValue)
 		
-		WriteSPI(&pPrivate->hSPI, CTRL_REG_ADDR, pPrivate->CTRL_RegValue.iRegValue);
+		WriteSPI(&pPrivate->hSPI, &pPrivate->PinConfig_t, CTRL_REG_ADDR, pPrivate->CTRL_RegValue.iRegValue);		
+	
+		return true;
 }
 
 bool SetRegisterDefaultTORQUE(PrivateBlock *pPrivate)
 {
 		pPrivate->TORQUE_RegValue.structReg.TORQUE = 0xFF;
 		pPrivate->TORQUE_RegValue.structReg.SIMPLTH = BIN_1;
+	
+		DEBUG_LOG("\r\nConfig TORQUE Reg:0x%x", pPrivate->TORQUE_RegValue.iRegValue)
+	
+		WriteSPI(&pPrivate->hSPI, &pPrivate->PinConfig_t, CTRL_REG_ADDR, pPrivate->CTRL_RegValue.iRegValue);		
 		
-		WriteSPI(&pPrivate->hSPI, TORQUE_REG_ADDR, pPrivate->TORQUE_RegValue.iRegValue);		
+		return true;
 }
 
 bool SetRegisterDefaultOFF(PrivateBlock *pPrivate)
 {
 		pPrivate->OFF_RegValue.structReg.TOFF = 0x40;
 		pPrivate->OFF_RegValue.structReg.PWMMODE = BIN_1;
-		
-		WriteSPI(&pPrivate->hSPI, OFF_REG_ADDR, pPrivate->OFF_RegValue.iRegValue);		
+	
+		DEBUG_LOG("\r\nConfig OFF Reg:0x%x", pPrivate->OFF_RegValue.iRegValue)
+	
+		WriteSPI(&pPrivate->hSPI, &pPrivate->PinConfig_t, CTRL_REG_ADDR, pPrivate->CTRL_RegValue.iRegValue);	
+
+		return true;
 }
 
 bool SetRegisterDefaultBLANK(PrivateBlock *pPrivate)
 {
 		pPrivate->BLANK_RegValue.structReg.TBLANK = 0x40;
 		pPrivate->BLANK_RegValue.structReg.ABT = BIN_1;
-		
-		WriteSPI(&pPrivate->hSPI, BLANK_REG_ADDR, pPrivate->BLANK_RegValue.iRegValue);		
+	
+		DEBUG_LOG("\r\nConfig BLANK Reg:0x%x", pPrivate->BLANK_RegValue.iRegValue)
+	
+		WriteSPI(&pPrivate->hSPI, &pPrivate->PinConfig_t, CTRL_REG_ADDR, pPrivate->CTRL_RegValue.iRegValue);		
+	
+		return true;
 }
 
 bool SetRegisterDefaultDECAY(PrivateBlock *pPrivate)
 {
 		pPrivate->DECAY_RegValue.structReg.TDECAY = BIN_10;
 		pPrivate->DECAY_RegValue.structReg.DECMOD = BIN_1;
-		
-		WriteSPI(&pPrivate->hSPI, DECAY_REG_ADDR, pPrivate->DECAY_RegValue.iRegValue);		
+	
+		DEBUG_LOG("\r\nConfig DECAY Reg:0x%x", pPrivate->DECAY_RegValue.iRegValue)
+	
+		WriteSPI(&pPrivate->hSPI, &pPrivate->PinConfig_t, CTRL_REG_ADDR, pPrivate->CTRL_RegValue.iRegValue);		
+	
+		return true;
 }
 
 bool SetRegisterDefaultSTALL(PrivateBlock *pPrivate)
@@ -227,7 +296,11 @@ bool SetRegisterDefaultSTALL(PrivateBlock *pPrivate)
 		pPrivate->STALL_RegValue.structReg.SDCNT = BIN_0;
 		pPrivate->STALL_RegValue.structReg.VDIV = BIN_11;
 	
-		WriteSPI(&pPrivate->hSPI, STALL_REG_ADDR, pPrivate->STALL_RegValue.iRegValue);		
+		DEBUG_LOG("\r\nConfig STALL Reg:0x%x", pPrivate->STALL_RegValue.iRegValue)
+	
+		WriteSPI(&pPrivate->hSPI, &pPrivate->PinConfig_t, CTRL_REG_ADDR, pPrivate->CTRL_RegValue.iRegValue);		
+	
+		return true;
 }
 
 bool SetRegisterDefaultDRIVE(PrivateBlock *pPrivate)
@@ -239,40 +312,35 @@ bool SetRegisterDefaultDRIVE(PrivateBlock *pPrivate)
 		pPrivate->DRIVE_RegValue.structReg.IDRIVEN = BIN_10;
 		pPrivate->DRIVE_RegValue.structReg.IDRIVEP = BIN_10;
 	
-		WriteSPI(&pPrivate->hSPI, DRIVE_REG_ADDR, pPrivate->DRIVE_RegValue.iRegValue);		
+		DEBUG_LOG("\r\nConfig DRIVE Reg:0x%x", pPrivate->DRIVE_RegValue.iRegValue)
+	
+		WriteSPI(&pPrivate->hSPI, &pPrivate->PinConfig_t, CTRL_REG_ADDR, pPrivate->CTRL_RegValue.iRegValue);		
+	
+		return true;
 }
 
-bool DRV8711_Init(DRV8711_Control *Block_t, DRV8711_Params *Params_t)
-{		
-		PrivateBlock *pPrivate = (PrivateBlock *)malloc(sizeof(PrivateBlock));
-		if(NULL == pPrivate)
-		{
-				printf("\r\nfunc:%s:malloc 8711 block failed", __FUNCTION__);
-				return false;				
-		}
-		
-		SPI_TypeDef *SPI_t;
-		
-		switch(Params_t->eMode)
-		{
-				case eSPI1:
-					DEBUG_LOG("\r\nDBG 8711 choose SPI1")
-					SPI_t = SPI1;
-					break;
-				case eSPI2:
-					SPI_t = SPI2;
-					break;
-				default:
-					
-					break;
-		}
-		
-		MX_SPI_Init(pPrivate->hSPI, SPI_t);
-		
-		
-		Block_t->m_pThisPrivate = pPrivate;
-		
-		return true;
+//复位DRV8711
+void DRV8711_Reset(DRV8711_PinConfig *pConfig_t)
+{
+		SET_PIN(pConfig_t->ResetPin.GPIO_Port, pConfig_t->ResetPin.GPIO_Pin);
+    Delay_ms (5);
+    RESET_PIN(pConfig_t->ResetPin.GPIO_Port, pConfig_t->ResetPin.GPIO_Pin);
+    Delay_ms (5);
+}
+//使能睡眠模式
+void DRV8711_SleepEnable(DRV8711_PinConfig *pConfig_t)
+{
+    Delay_ms (5);
+		RESET_PIN(pConfig_t->SleepPin.GPIO_Port, pConfig_t->SleepPin.GPIO_Pin);
+    Delay_ms (5);
+}
+
+//解除睡眠模式
+void DRV8711_SleepDisable (DRV8711_PinConfig *pConfig_t)
+{
+    Delay_ms (5);
+    SET_PIN(pConfig_t->SleepPin.GPIO_Port, pConfig_t->SleepPin.GPIO_Pin);
+    Delay_ms (5);
 }
 
 bool DRV8711_SetSubdivision(PrivateBlock *pPrivate, uint8_t iCfg)
@@ -314,7 +382,7 @@ bool DRV8711_SetSubdivision(PrivateBlock *pPrivate, uint8_t iCfg)
     }
 		
 		pPrivate->CTRL_RegValue.structReg.MODE = iRegCfg;
-		WriteSPI(&pPrivate->hSPI, CTRL_REG_ADDR, pPrivate->CTRL_RegValue.iRegValue);
+		WriteSPI(&pPrivate->hSPI, &pPrivate->PinConfig_t, CTRL_REG_ADDR, pPrivate->CTRL_RegValue.iRegValue);
 		
     return true;		
 }
@@ -322,7 +390,7 @@ bool DRV8711_SetSubdivision(PrivateBlock *pPrivate, uint8_t iCfg)
 bool DRV8711_SetTorque(PrivateBlock *pPrivate, uint8_t iCfg)
 {	
 		pPrivate->TORQUE_RegValue.structReg.TORQUE = iCfg;
-		WriteSPI(&pPrivate->hSPI, TORQUE_REG_ADDR, pPrivate->TORQUE_RegValue.iRegValue);
+		WriteSPI(&pPrivate->hSPI, &pPrivate->PinConfig_t, CTRL_REG_ADDR, pPrivate->CTRL_RegValue.iRegValue);
 		
     return true;		
 }
@@ -349,8 +417,100 @@ bool DRV8711_SetSenseGain(PrivateBlock *pPrivate, uint8_t iCfg)
 						iRegCfg = 0x0;
     }
 		pPrivate->CTRL_RegValue.structReg.ISGAIN = iRegCfg;
-		WriteSPI(&pPrivate->hSPI, TORQUE_REG_ADDR, pPrivate->TORQUE_RegValue.iRegValue);
+		WriteSPI(&pPrivate->hSPI, &pPrivate->PinConfig_t, CTRL_REG_ADDR, pPrivate->CTRL_RegValue.iRegValue);
 		
     return true;		
+}
+
+bool DRV8711_Forward(PRIVATE_MEMBER_TYPE *pThisPrivate)
+{	
+		PrivateBlock *pPrivate = (PrivateBlock *)pThisPrivate;
+		if(NULL == pPrivate)
+		{
+				printf("\r\nfunc:%s:malloc 8711 block failed", __FUNCTION__);
+				return false;				
+		}
+		
+		SET_PIN(pPrivate->PinConfig_t.DirPin.GPIO_Port, pPrivate->PinConfig_t.DirPin.GPIO_Pin);
+}
+
+bool DRV8711_Backward(PRIVATE_MEMBER_TYPE *pThisPrivate)
+{
+		PrivateBlock *pPrivate = (PrivateBlock *)pThisPrivate;
+		if(NULL == pPrivate)
+		{
+				printf("\r\nfunc:%s:malloc 8711 block failed", __FUNCTION__);
+				return false;				
+		}
+		
+		SET_PIN(pPrivate->PinConfig_t.DirPin.GPIO_Port, pPrivate->PinConfig_t.DirPin.GPIO_Pin);
+}
+
+bool DRV8711_Init(DRV8711_Control *Block_t, DRV8711_Params *Params_t)
+{		
+		PrivateBlock *pPrivate = (PrivateBlock *)malloc(sizeof(PrivateBlock));
+		if(NULL == pPrivate)
+		{
+				printf("\r\nfunc:%s:malloc 8711 block failed", __FUNCTION__);
+				return false;				
+		}
+		
+		SPI_TypeDef *SPI_t;
+		
+		switch(Params_t->eMode)
+		{
+				case eSPI1:
+					DEBUG_LOG("\r\nDBG 8711 choose SPI1")
+					SPI_t = SPI1;
+					break;
+				case eSPI2:
+					DEBUG_LOG("\r\nDBG 8711 choose SPI2")
+					SPI_t = SPI2;
+					break;
+				default:
+					
+					break;
+		}
+		MX_SPI_Init(&pPrivate->hSPI, SPI_t);
+		
+		memcpy(&pPrivate->PinConfig_t, (DRV8711_PinConfig *)Params_t->pDriverPinConfig, sizeof(DRV8711_PinConfig));
+		
+		GPIO_InitPullDown(pPrivate->PinConfig_t.ResetPin.GPIO_Port, pPrivate->PinConfig_t.ResetPin.GPIO_Pin);
+		GPIO_InitPullDown(pPrivate->PinConfig_t.SleepPin.GPIO_Port, pPrivate->PinConfig_t.SleepPin.GPIO_Pin);
+		GPIO_InitNoPull(pPrivate->PinConfig_t.DirPin.GPIO_Port, pPrivate->PinConfig_t.DirPin.GPIO_Pin);
+		GPIO_InitNoPull(pPrivate->PinConfig_t.CSPin.GPIO_Port, pPrivate->PinConfig_t.CSPin.GPIO_Pin);
+			
+		DRV8711_Reset(&pPrivate->PinConfig_t);
+		DRV8711_SleepDisable(&pPrivate->PinConfig_t);
+			
+		SetRegisterDefaultCTRL(pPrivate);
+		Delay_ms(1);
+		SetRegisterDefaultTORQUE(pPrivate);
+		Delay_ms(1);
+		SetRegisterDefaultOFF(pPrivate);
+		Delay_ms(1);
+		SetRegisterDefaultBLANK(pPrivate);
+		Delay_ms(1);
+		SetRegisterDefaultDECAY(pPrivate);
+		Delay_ms(1);
+		SetRegisterDefaultSTALL(pPrivate);
+		Delay_ms(1);
+		SetRegisterDefaultDRIVE(pPrivate);
+		
+		DRV8711_SetSubdivision(pPrivate, Params_t->iSubdivisionCfg);
+		DEBUG_LOG("\r\nDBG 8711 SubdivisionCfg val:%x", Params_t->iSubdivisionCfg);
+		DRV8711_SetSenseGain(pPrivate, 5);
+		DRV8711_SetTorque(pPrivate, Params_t->iCurrentCfg);
+		DEBUG_LOG("\r\nDBG 8711 CurrentCfg val:%x", Params_t->iCurrentCfg);
+		
+		EnableMotor(pPrivate);
+		
+		Block_t->m_pThisPrivate = pPrivate;
+		
+//		uint16_t iData;
+//		ReadSPI(&pPrivate->hSPI, &pPrivate->PinConfig_t, DRIVE_REG_ADDR, &iData);
+//		DEBUG_LOG("\r\nDBG Read DRIVE:%x", iData)
+//		
+		return true;
 }
 	

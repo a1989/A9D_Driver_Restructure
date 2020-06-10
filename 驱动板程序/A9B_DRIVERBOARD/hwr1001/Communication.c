@@ -167,7 +167,7 @@ void AddCommunicationInterface(PRIVATE_MEMBER_TYPE *Block_t, CommunicationParams
 		
 		pList = (InterfaceList *)malloc(sizeof(InterfaceList));
 		if(NULL == pList)
-		{
+		{				
 				return;
 		}
 		
@@ -289,7 +289,8 @@ void PopMessage(PRIVATE_MEMBER_TYPE *pPrivate, uint8_t *pData, uint8_t *iDataLen
 				DEBUG_LOG("\r\nstart pop message")
 				memcpy(pData, Private_t->RecvBlock_t->iRecvBuffer_t[Private_t->RecvBlock_t->iReadIndex].iBuffer, 
 											Private_t->RecvBlock_t->iRecvBuffer_t[Private_t->RecvBlock_t->iReadIndex].iDataLen);
-
+				*iDataLen = Private_t->RecvBlock_t->iRecvBuffer_t[Private_t->RecvBlock_t->iReadIndex].iDataLen;
+				
 				Private_t->RecvBlock_t->iBufferLen--;
 				Private_t->RecvBlock_t->iReadIndex = (Private_t->RecvBlock_t->iReadIndex + 1) % RECV_BUFFER_SIZE;
 				*bAvailable = true;			
@@ -320,6 +321,11 @@ void SlaveDataPrepare(PRIVATE_MEMBER_TYPE *Block_t, uint8_t *pData, uint8_t iDat
 				printf("\r\nfunc:%s, error:Param Type", __FUNCTION__);
 				return;
 		}
+		
+//		for(int i = 0; i < iDataLen; i++)
+//		{
+//				DEBUG_LOG("\r\n%x", *(pData + i))
+//		}
 		
 		PushSendBuffer(Private_t->SendBlock_t, pData, iDataLen, eType);
 }
