@@ -51,6 +51,19 @@ typedef struct
 		uint16_t arrAccDivisionTable[ACC_TIME_DIVISION][2];
 }PrivateBlock;
 
+void StepperStop(PRIVATE_MEMBER_TYPE *pPrivate)
+{
+		PrivateBlock *pPrivate_t = (PrivateBlock *)pPrivate;
+	
+		if(NULL == pPrivate_t)
+		{
+				printf("\r\nfunc:%s,null pointer", __FUNCTION__);				
+				return;
+		}	
+
+		HAL_TIM_OC_Stop_IT (&pPrivate_t->hTIM, TIM_CHANNEL_1);		
+}
+
 void StopStepperModerate(PrivateBlock *pPrivate)
 {
 		PrivateBlock *pPrivate_t = (PrivateBlock *)pPrivate;
@@ -209,10 +222,10 @@ bool StepperPrepare(PRIVATE_MEMBER_TYPE *pThisPrivate, float fDistance, float fS
 		DEBUG_LOG("\r\nStart OC")
 }
 
-void SetTIM_OC(PRIVATE_MEMBER_TYPE *pThisPrivate, TIM_HandleTypeDef *hTIM, uint16_t iPos)
+void SetTIM_OC(PRIVATE_MEMBER_TYPE *pThisPrivate, TIM_HandleTypeDef *hTIM, uint32_t iPos)
 {
 		uint16_t iCount; 
-		uint16_t iToggleParam = 500;
+		uint16_t iToggleParam = 50;
 		PrivateBlock *pPrivate = (PrivateBlock *)pThisPrivate;
 	
 		if(NULL == pPrivate)
@@ -221,9 +234,23 @@ void SetTIM_OC(PRIVATE_MEMBER_TYPE *pThisPrivate, TIM_HandleTypeDef *hTIM, uint1
 				return;
 		}			
 		
-		iCount =__HAL_TIM_GET_COUNTER (&pPrivate->hTIM);
+		//iCount =__HAL_TIM_GET_COUNTER (&pPrivate->hTIM);
+		iCount =__HAL_TIM_GET_COUNTER (hTIM);
 //		__HAL_TIM_SET_COMPARE (&pPrivate->hTIM, TIM_CHANNEL_1, (uint16_t)(iCount + iToggleParam));
 		__HAL_TIM_SET_COMPARE (&htim2, TIM_CHANNEL_1, (uint16_t)(iCount + iToggleParam));
+}
+
+TIM_HandleTypeDef *GetStepperTimHandle(PRIVATE_MEMBER_TYPE *pThisPrivate)
+{
+		PrivateBlock *pPrivate = (PrivateBlock *)pThisPrivate;
+	
+		if(NULL == pPrivate)
+		{
+				printf("\r\nfunc:%s,null pointer", __FUNCTION__);				
+				return false;
+		}		
+
+		return &htim2; //&pPrivate->hTIM;
 }
 
 void StepperControlInit(StepperControl *pStepper_t, StepperParams *pParams_t)
@@ -283,8 +310,12 @@ void StepperControlInit(StepperControl *pStepper_t, StepperParams *pParams_t)
 		}
 		
 		pStepper_t->m_pStepperPrepare = StepperPrepare;
-		
+		pStepper_t->m_pGetStepperTimHandle = GetStepperTimHandle;
+		pStepper_t->m_pStepperStop = StepperStop;
+		pStepper_t->m_pSetTIM_OC = SetTIM_OC;
 		pStepper_t->m_pThisPrivate = pPrivate;
+		
+		DEBUG_LOG("\r\nstepper init success")
 }
 
 

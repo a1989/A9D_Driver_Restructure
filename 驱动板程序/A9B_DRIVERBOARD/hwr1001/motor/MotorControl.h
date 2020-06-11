@@ -19,7 +19,10 @@ typedef struct
 		void (*m_pExeMotorControl)(PRIVATE_MEMBER_TYPE *pThisPrivate);
 }MotorControl;
 
+
 //初始化运动节点结构,本结构私有成员指针
 bool MotorControlInit(MotorControl *Block_t);
+//bool RegisterMotorVar(PRIVATE_MEMBER_TYPE *pThisPrivate, MotorControl *MotorVar);
+void MotorIntHandler(PRIVATE_MEMBER_TYPE *pPrivate, TIM_HandleTypeDef *htim);
 
 #endif

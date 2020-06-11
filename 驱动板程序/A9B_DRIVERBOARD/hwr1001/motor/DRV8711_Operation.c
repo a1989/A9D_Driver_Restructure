@@ -249,7 +249,7 @@ bool SetRegisterDefaultTORQUE(PrivateBlock *pPrivate)
 	
 		DEBUG_LOG("\r\nConfig TORQUE Reg:0x%x", pPrivate->TORQUE_RegValue.iRegValue)
 	
-		WriteSPI(&pPrivate->hSPI, &pPrivate->PinConfig_t, CTRL_REG_ADDR, pPrivate->CTRL_RegValue.iRegValue);		
+		WriteSPI(&pPrivate->hSPI, &pPrivate->PinConfig_t, TORQUE_REG_ADDR, pPrivate->CTRL_RegValue.iRegValue);		
 		
 		return true;
 }
@@ -261,7 +261,7 @@ bool SetRegisterDefaultOFF(PrivateBlock *pPrivate)
 	
 		DEBUG_LOG("\r\nConfig OFF Reg:0x%x", pPrivate->OFF_RegValue.iRegValue)
 	
-		WriteSPI(&pPrivate->hSPI, &pPrivate->PinConfig_t, CTRL_REG_ADDR, pPrivate->CTRL_RegValue.iRegValue);	
+		WriteSPI(&pPrivate->hSPI, &pPrivate->PinConfig_t, OFF_REG_ADDR, pPrivate->CTRL_RegValue.iRegValue);	
 
 		return true;
 }
@@ -273,7 +273,7 @@ bool SetRegisterDefaultBLANK(PrivateBlock *pPrivate)
 	
 		DEBUG_LOG("\r\nConfig BLANK Reg:0x%x", pPrivate->BLANK_RegValue.iRegValue)
 	
-		WriteSPI(&pPrivate->hSPI, &pPrivate->PinConfig_t, CTRL_REG_ADDR, pPrivate->CTRL_RegValue.iRegValue);		
+		WriteSPI(&pPrivate->hSPI, &pPrivate->PinConfig_t, BLANK_REG_ADDR, pPrivate->CTRL_RegValue.iRegValue);		
 	
 		return true;
 }
@@ -285,7 +285,7 @@ bool SetRegisterDefaultDECAY(PrivateBlock *pPrivate)
 	
 		DEBUG_LOG("\r\nConfig DECAY Reg:0x%x", pPrivate->DECAY_RegValue.iRegValue)
 	
-		WriteSPI(&pPrivate->hSPI, &pPrivate->PinConfig_t, CTRL_REG_ADDR, pPrivate->CTRL_RegValue.iRegValue);		
+		WriteSPI(&pPrivate->hSPI, &pPrivate->PinConfig_t, DECAY_REG_ADDR, pPrivate->CTRL_RegValue.iRegValue);		
 	
 		return true;
 }
@@ -298,7 +298,7 @@ bool SetRegisterDefaultSTALL(PrivateBlock *pPrivate)
 	
 		DEBUG_LOG("\r\nConfig STALL Reg:0x%x", pPrivate->STALL_RegValue.iRegValue)
 	
-		WriteSPI(&pPrivate->hSPI, &pPrivate->PinConfig_t, CTRL_REG_ADDR, pPrivate->CTRL_RegValue.iRegValue);		
+		WriteSPI(&pPrivate->hSPI, &pPrivate->PinConfig_t, STALL_REG_ADDR, pPrivate->CTRL_RegValue.iRegValue);		
 	
 		return true;
 }
@@ -314,7 +314,7 @@ bool SetRegisterDefaultDRIVE(PrivateBlock *pPrivate)
 	
 		DEBUG_LOG("\r\nConfig DRIVE Reg:0x%x", pPrivate->DRIVE_RegValue.iRegValue)
 	
-		WriteSPI(&pPrivate->hSPI, &pPrivate->PinConfig_t, CTRL_REG_ADDR, pPrivate->CTRL_RegValue.iRegValue);		
+		WriteSPI(&pPrivate->hSPI, &pPrivate->PinConfig_t, DRIVE_REG_ADDR, pPrivate->CTRL_RegValue.iRegValue);		
 	
 		return true;
 }
@@ -327,6 +327,7 @@ void DRV8711_Reset(DRV8711_PinConfig *pConfig_t)
     RESET_PIN(pConfig_t->ResetPin.GPIO_Port, pConfig_t->ResetPin.GPIO_Pin);
     Delay_ms (5);
 }
+
 //使能睡眠模式
 void DRV8711_SleepEnable(DRV8711_PinConfig *pConfig_t)
 {
@@ -336,7 +337,7 @@ void DRV8711_SleepEnable(DRV8711_PinConfig *pConfig_t)
 }
 
 //解除睡眠模式
-void DRV8711_SleepDisable (DRV8711_PinConfig *pConfig_t)
+void DRV8711_SleepDisable(DRV8711_PinConfig *pConfig_t)
 {
     Delay_ms (5);
     SET_PIN(pConfig_t->SleepPin.GPIO_Port, pConfig_t->SleepPin.GPIO_Pin);
@@ -390,7 +391,7 @@ bool DRV8711_SetSubdivision(PrivateBlock *pPrivate, uint8_t iCfg)
 bool DRV8711_SetTorque(PrivateBlock *pPrivate, uint8_t iCfg)
 {	
 		pPrivate->TORQUE_RegValue.structReg.TORQUE = iCfg;
-		WriteSPI(&pPrivate->hSPI, &pPrivate->PinConfig_t, CTRL_REG_ADDR, pPrivate->CTRL_RegValue.iRegValue);
+		WriteSPI(&pPrivate->hSPI, &pPrivate->PinConfig_t, TORQUE_REG_ADDR, pPrivate->CTRL_RegValue.iRegValue);
 		
     return true;		
 }
@@ -496,20 +497,23 @@ bool DRV8711_Init(DRV8711_Control *Block_t, DRV8711_Params *Params_t)
 		SetRegisterDefaultSTALL(pPrivate);
 		Delay_ms(1);
 		SetRegisterDefaultDRIVE(pPrivate);
+		Delay_ms(1);
 		
 		DRV8711_SetSubdivision(pPrivate, Params_t->iSubdivisionCfg);
 		DEBUG_LOG("\r\nDBG 8711 SubdivisionCfg val:%x", Params_t->iSubdivisionCfg);
+		Delay_ms(1);
 		DRV8711_SetSenseGain(pPrivate, 5);
+		Delay_ms(1);
 		DRV8711_SetTorque(pPrivate, Params_t->iCurrentCfg);
 		DEBUG_LOG("\r\nDBG 8711 CurrentCfg val:%x", Params_t->iCurrentCfg);
-		
+//		
 		EnableMotor(pPrivate);
 		
 		Block_t->m_pThisPrivate = pPrivate;
 		
 //		uint16_t iData;
 //		ReadSPI(&pPrivate->hSPI, &pPrivate->PinConfig_t, DRIVE_REG_ADDR, &iData);
-//		DEBUG_LOG("\r\nDBG Read DRIVE:%x", iData)
+		DEBUG_LOG("\r\n8711 Init Success")
 //		
 		return true;
 }

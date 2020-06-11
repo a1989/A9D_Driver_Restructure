@@ -26,11 +26,14 @@ typedef struct
 {
 		PRIVATE_MEMBER_TYPE *m_pThisPrivate;
 		void (*m_pSingleStepperPrepare)(AxisEnum eAxisIndex, float fDistance, float fSpeed);
+		void (*m_pSetTIM_OC)(PRIVATE_MEMBER_TYPE *pThisPrivate, TIM_HandleTypeDef *hTIM, uint32_t iPos);
 		void (*m_pPulse)();
+		void (*m_pStepperStop)(PRIVATE_MEMBER_TYPE *pPrivate);
 		void (*m_pSetPositionEnforce)(PRIVATE_MEMBER_TYPE *pPrivate, float fPosition);
 		bool (*m_pStepperPrepare)(PRIVATE_MEMBER_TYPE *pPrivate, float fTarget, float fSpeed);
 		bool (*m_pStepperForward)(PRIVATE_MEMBER_TYPE *pPrivate);
 		bool (*m_pStepperBackward)(PRIVATE_MEMBER_TYPE *pPrivate);
+		TIM_HandleTypeDef *(*m_pGetStepperTimHandle)(PRIVATE_MEMBER_TYPE *pPrivate);
 }StepperControl;
 
 void StepperControlInit(StepperControl *Stepper_t, StepperParams *Params_t);

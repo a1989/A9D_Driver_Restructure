@@ -3,10 +3,12 @@
 #include "IncEncoderControl.h"
 #include "gpio.h"
 #include "stdlib.h"
-
+#include "tim.h"
 
 #define POSITIVE_DIRECTION	1		//正方向
 #define NEGTIVE_DIRECTION		-1	//负方向
+
+void *MotorVarToInt = NULL;
 
 /*本模块类型定义*/
 typedef struct
@@ -30,6 +32,12 @@ typedef struct structMotorList
 		struct structMotorList *pNext_t;
 		LimitsNode *pLimitsList;
 		MoveInfo MoveInfo_t;
+		//用于快速电机操作
+		TIM_HandleTypeDef *hMotorTim;
+//		uint16_t (*m_pSetMoveParams)(void *pMotor_t);
+//		void (*m_pStopMove)(void *pMotor_t);
+		bool (*m_pLimitTouch)(LimitsNode *LimitNode);
+		bool (*m_pTargetArrived)(void *pEncoder_t);		
 }MotorList;
 
 //每个运动单节点的参数
@@ -145,6 +153,52 @@ MoveNodeList *MallocMoveNode_t(void)
 		return pNode_t;
 }
 
+bool RegisterMotorVar(PRIVATE_MEMBER_TYPE *pThisPrivate, MotorControl *MotorVar)
+{
+		PrivateBlock *pPrivate_t = (PrivateBlock *)pThisPrivate;
+//		PrivateBlock *pMotorVar = (PrivateBlock *)PrivateBlock;
+	
+		if(NULL == pPrivate_t)
+		{
+				printf("\r\nfunc:%s:block null pointer", __FUNCTION__);
+				return false;
+		}			
+		
+		DEBUG_LOG("\r\nDBG start register motor to Int")
+		
+//		if(pPrivate_t->pMotorList == NULL)
+//		{
+//			DEBUG_LOG("\r\nDBG no motor")
+//		}
+		
+//		MotorVar->m_pThisPrivate = pPrivate_t; //(PrivateBlock *)malloc(sizeof(PrivateBlock));
+//		memcpy(MotorVar->m_pThisPrivate, pPrivate_t, sizeof(PrivateBlock));
+		MotorVar->m_pThisPrivate = pPrivate_t;
+		
+		DEBUG_LOG("\r\nDBG end register motor to Int")
+}
+
+bool LimitTouch(LimitsNode *LimitNode)
+{
+		LimitsNode *pNode = LimitNode;
+	
+		if(NULL == pNode)
+		{
+				return false;
+		}
+		
+		while(pNode != NULL)
+		{
+				if((bool)READ_GPIO_PIN(pNode->LimitParams_t.GPIO_Port, pNode->LimitParams_t.GPIO_Pin))
+				{
+						return true;
+				}
+				pNode = pNode->pNext_t;
+		}
+		
+		return false;
+}
+
 static bool AddMotor(PRIVATE_MEMBER_TYPE *pThisPrivate, MotorParams *pParams_t)
 {
 		StepperControl *pStepper_t = NULL;
@@ -152,7 +206,8 @@ static bool AddMotor(PRIVATE_MEMBER_TYPE *pThisPrivate, MotorParams *pParams_t)
 		StepperSysParams *pStepperSysParams_t = NULL;
 		MotorList *pList = NULL;
 		MotorList *pNode = NULL;
-		
+		TIM_HandleTypeDef *hTIM = NULL;
+	
 		PrivateBlock *pPrivate_t = NULL;
 		
 		if(NULL == pThisPrivate)
@@ -162,7 +217,14 @@ static bool AddMotor(PRIVATE_MEMBER_TYPE *pThisPrivate, MotorParams *pParams_t)
 		}		
 		
 		pPrivate_t = (PrivateBlock *)pThisPrivate;
-				
+		
+		pList = (MotorList *)malloc(sizeof(MotorList));
+		if(NULL == pList)
+		{
+				printf("\r\nfunc:%s:malloc list node failed", __FUNCTION__);
+				return false;
+		}
+		
 		switch(pParams_t->eMotorType)
 		{
 				case eSTEPPER_ENCODER:
@@ -177,29 +239,38 @@ static bool AddMotor(PRIVATE_MEMBER_TYPE *pThisPrivate, MotorParams *pParams_t)
 					//取出配置参数
 					pStepperSysParams_t = (StepperSysParams *)pParams_t->pMotorSysParams;
 					StepperControlInit(pStepper_t, &pStepperSysParams_t->StepperParams_t);
+	
 					//初始化编码器
 					pIncEncoder_t = (IncEncoderControl *)malloc(sizeof(IncEncoderControl));
+					if(NULL == pIncEncoder_t)
+					{
+							printf("\r\nfunc:%s:malloc encoder node failed", __FUNCTION__);
+							return false;
+					}
 					IncEncoderControlInit(pIncEncoder_t, &pStepperSysParams_t->EncoderParmas_t);
+					
+					pList->pMotor_t = pStepper_t;
+					pList->pEncoder_t = pIncEncoder_t;
+					pList->hMotorTim = pStepper_t->m_pGetStepperTimHandle(pStepper_t->m_pThisPrivate);
+					pList->m_pTargetArrived = pIncEncoder_t->m_pIncEncoderTargetArrived;
+					pList->m_pLimitTouch = LimitTouch;
+					
 					break;
 				default:
 					break;
 		}
 		
-		pList = (MotorList *)malloc(sizeof(MotorList));
-		if(NULL == pList)
-		{
-				printf("\r\nfunc:%s:malloc list node failed", __FUNCTION__);
-				return false;
-		}
+
 		
+
 		pList->eMotorType = pParams_t->eMotorType;
-		pList->pMotor_t = pStepper_t;
-		pList->pEncoder_t = pIncEncoder_t;
+
 		pList->pLimitsList = NULL;
 		pList->pNext_t = NULL;
 		
 		if(NULL == pPrivate_t->pMotorList)
 		{
+				DEBUG_LOG("\r\nAdd a motor")
 				pPrivate_t->pMotorList = pList;
 		}
 		else
@@ -211,9 +282,66 @@ static bool AddMotor(PRIVATE_MEMBER_TYPE *pThisPrivate, MotorParams *pParams_t)
 				}
 				
 				pNode->pNext_t = pList;
-		}
+				DEBUG_LOG("\r\nAdd a motor")
+		}		
 }
 
+void MotorIntHandler(PRIVATE_MEMBER_TYPE *pPrivate, TIM_HandleTypeDef *hTIM)
+{
+		PrivateBlock *pPrivate_t = (PrivateBlock *)pPrivate;
+		MotorList *Motor_t = pPrivate_t->pMotorList;
+		StepperControl *pStepper_t = NULL;
+		IncEncoderControl *pIncEncoder_t = NULL;
+	
+		if(NULL == pPrivate_t)
+		{
+				printf("\r\nfunc:%s:block null pointer", __FUNCTION__);
+				return;
+		}			
+		
+//		DEBUG_LOG("\r\nM1")
+		
+		while(Motor_t != NULL)
+		{
+//				DEBUG_LOG("\r\nM1.0")
+				if(Motor_t->hMotorTim == hTIM)
+				{
+//						DEBUG_LOG("\r\nM1.1")
+						break;
+				}
+				
+				Motor_t = Motor_t->pNext_t;
+		}
+//		DEBUG_LOG("\r\nM2")
+		if(NULL == Motor_t)
+		{
+				printf("\r\nfunc:%s:no motor", __FUNCTION__);
+				return;
+		}
+		
+//		uint16_t iCount;
+
+//		iCount =__HAL_TIM_GET_COUNTER (hTIM);
+//		__HAL_TIM_SET_COMPARE (&htim2, TIM_CHANNEL_1, (uint16_t)(iCount + 100));
+		
+		switch(Motor_t->eMotorType)
+		{
+				case eSTEPPER_ENCODER:
+					pStepper_t = Motor_t->pMotor_t;
+//					pIncEncoder_t = Motor_t->pEncoder_t;
+//					if(Motor_t->m_pLimitTouch(Motor_t->pLimitsList) || pIncEncoder_t->m_pIncEncoderTargetArrived(pIncEncoder_t->m_pThisPrivate))
+//					{
+//							pStepper_t->m_pStepperStop(pStepper_t->m_pThisPrivate);
+//					}
+//					else
+//					{
+							pStepper_t->m_pSetTIM_OC(pStepper_t->m_pThisPrivate, hTIM, 0);
+//					}					
+					break;
+				default:
+					break;
+		}		
+}
 
 void PushMoveData(MoveNodeList *Node_t, MoveNodeParams *Params_t)
 {
@@ -342,12 +470,14 @@ static bool MotorHomeImmediately(PRIVATE_MEMBER_TYPE *pThisPrivate, uint8_t iMot
 		ClearMoveNodeAll(pPrivate->pMoveNodeList);
 
 		MotorHome(pPrivate->pMoveNodeList, &iMotorID, &iSpeed);
+		
+		return true;
 }
 
-uint16_t GetMotorPulseParamByID(uint8_t iMotorID)
-{
-		
-}
+//uint16_t GetMotorPulseParamByID(uint8_t iMotorID)
+//{
+//		
+//}
 
 void PauseAxisImmediately()
 {
@@ -427,7 +557,7 @@ void SetPositionEnforce(MotorList *pMotorNode, float fPos)
 
 bool CheckLimits(MotorList *pMotorNode, eLimitType eLimit)
 {
-		
+		return true;
 }
 
 bool AddLimits(PRIVATE_MEMBER_TYPE *pThisPrivate, LimitParams *Params_t)
@@ -487,6 +617,8 @@ bool AddLimits(PRIVATE_MEMBER_TYPE *pThisPrivate, LimitParams *Params_t)
 				
 				pLimitNodeTry->pNext_t = pLimitNode;
 		}
+		
+		return true;
 }
 
 bool ReadLimitByID(PRIVATE_MEMBER_TYPE *pThisPrivate, uint8_t iMotorID, LimitFunction eFunc, bool *bStatu)
@@ -672,8 +804,9 @@ static void ExeMotorControl(PRIVATE_MEMBER_TYPE *pPrivate)
 bool MotorControlInit(MotorControl *Block_t)
 {
 		//结构体指针指向初始化的内存区域
-		uint8_t i = 0;
-		PrivateBlock *pPrivate_t = (PrivateBlock *)malloc(sizeof(PrivateBlock));
+//		uint8_t i = 0;
+		MotorVarToInt = (PrivateBlock *)malloc(sizeof(PrivateBlock));
+		PrivateBlock *pPrivate_t = (PrivateBlock *)MotorVarToInt;
 		if(NULL == pPrivate_t)
 		{
 				printf("\r\nfunc:%s:malloc failed", __FUNCTION__);
@@ -698,7 +831,10 @@ bool MotorControlInit(MotorControl *Block_t)
 		Block_t->m_pExeMotorControl = ExeMotorControl;
 		
 		g_pMotorTabel = pPrivate_t->pMotorList;
-		DEBUG_LOG("\r\nDBG Motor control init success")
 		
+		
+//		RegisterMotorVar(Block_t->m_pThisPrivate, &MotorVarToInt);
+		
+		DEBUG_LOG("\r\nDBG Motor control init success")
 		return true;
 }

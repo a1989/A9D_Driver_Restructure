@@ -2,7 +2,8 @@
 #include "includes.h"
 #include "usart.h"
 #include "Communication.h"
-#include "MotionControl.h"
+#include "IncEncoderControl.h"
+#include "MotorControl.h"
 //#include "stdlib.h"
 
 uint16_t time3_count = 0; //用于循环计数
@@ -18,11 +19,11 @@ uint8_t gCan_Receive_Flag = 0;
 //extern EncoderType GetEncoder;
 
 extern CommunicationBlock 	g_Communication_t;
-extern MotionManageBlock 	g_MotionBlock_t;
 extern USART_Handle	USART_Handle_t;
 extern DevInfo 	DriverBoardInfo;
 
-IncEncoderVar IncEncoder0;
+extern IncEncoderTableInt *IncEncoderTableInt_t;
+extern void *MotorVarToInt;
 
 //编码器操作表
 
@@ -129,6 +130,7 @@ void HAL_UART_RxCpltCallback (UART_HandleTypeDef* huart) //串口中断回调函
 //tim call back
 void HAL_TIM_PeriodElapsedCallback (TIM_HandleTypeDef *htim)		//10ms
 {
+		IncEncoderTableInt *pNode = IncEncoderTableInt_t;
 //		IncEncoderTable *pEncoder = g_IncEncoderTable;
 //	if (htim->Instance == htim4.Instance) //tim4 interrupt
 //	{
@@ -189,7 +191,12 @@ void HAL_TIM_PeriodElapsedCallback (TIM_HandleTypeDef *htim)		//10ms
 //				pEncoder->m_pHandler(pEncoder->pPrivate, htim);
 //				pEncoder = pEncoder->pNext;
 //		}
-
+		while(pNode != NULL)
+		{
+				IncEncoderIntHandler(pNode->m_pThisPrivate, htim);
+				pNode = pNode->pNext;
+		}
+		
 		if (htim->Instance == htim4.Instance) //tim4 interrupt
 		{
 				
@@ -286,12 +293,12 @@ void HAL_TIM_OC_DelayElapsedCallback (TIM_HandleTypeDef *htim)
 //		tim_Pulse_count++;
 //		StepMotor_Pulse_cnt = tim_Pulse_count / (motor_step_value * 2);
 	
-			uint16_t iCount;
-			uint16_t iToggleValue;
-			
-			
-			iCount =__HAL_TIM_GET_COUNTER (htim);
-			__HAL_TIM_SET_COMPARE (&htim2, TIM_CHANNEL_1, (uint16_t)(iCount + 100));
+//			uint16_t iCount;
+
+//			iCount =__HAL_TIM_GET_COUNTER (htim);
+//			__HAL_TIM_SET_COMPARE (&htim2, TIM_CHANNEL_1, (uint16_t)(iCount + 100));
+	
+		MotorIntHandler(MotorVarToInt, htim);
 			
 }
 
