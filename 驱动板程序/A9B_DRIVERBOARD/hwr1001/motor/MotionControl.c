@@ -192,9 +192,21 @@ static float GetCurrentSpeed(void)
 		return 0;
 }
 
-static float GetCurrentLocation(void)
+bool GetMotionData(PRIVATE_MEMBER_TYPE *pThisPrivate, uint8_t iMotorID, float *fPos, float *fSpeed)
 {
-		return 0;
+		PrivateBlock *pPrivate_t = NULL;
+	
+		if(NULL == pThisPrivate)
+		{
+				printf("\r\nfunc:%s:block null pointer", __FUNCTION__);
+				return false;
+		}		
+
+		pPrivate_t = (PrivateBlock *)pThisPrivate;		
+
+		pPrivate_t->pMotorControl_t->m_pGetMotorMoveData(pPrivate_t->pMotorControl_t->m_pThisPrivate, iMotorID, fPos, fSpeed);		
+		
+		return true;
 }
 
 bool SetMotorMoveData(PRIVATE_MEMBER_TYPE *pThisPrivate, uint8_t iMotorID, uint32_t iTarget, uint32_t iSpeed)
@@ -272,6 +284,7 @@ bool MotionBlockInit(MotionManageBlock *Block_t)
 		Block_t->m_pAddMotorLimit = AddMotorLimitSwitch;
 		Block_t->m_pAddMotor = AddMotor;
 		Block_t->m_pReadMotorLimit = ReadMotorLimit;
+		Block_t->m_pGetMotionData = GetMotionData;
 		Block_t->m_ExeMotionBlcok = ExeMotionBlcok;
 				
 		return true;

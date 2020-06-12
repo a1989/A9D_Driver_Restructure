@@ -26,8 +26,8 @@ typedef struct
 //		void (*m_pHomeAxis)(PRIVATE_MEMBER_TYPE *m_pThisPrivate, MoveParams *Params_t);
 		void (*m_pHomeAxisImmediately)(PRIVATE_MEMBER_TYPE *m_pThisPrivate, uint8_t iMotorID, uint32_t iSpeed);
 //		void (*m_pGetMotionData)(PRIVATE_MEMBER_TYPE *m_pThisPrivate, MoveParams *Params_t);
-		bool (*m_GetMotorPosition)(PRIVATE_MEMBER_TYPE *m_pThisPrivate, uint8_t iMotorID, float *fPosition);
-		bool (*m_GetMotorSpeed)(PRIVATE_MEMBER_TYPE *m_pThisPrivate, uint8_t iMotorID, float *fSpeed);
+		bool (*m_pGetMotionData)(PRIVATE_MEMBER_TYPE *m_pThisPrivate, uint8_t iMotorID, float *fPos, float *fSpeed);
+		bool (*m_pGetMotorSpeed)(PRIVATE_MEMBER_TYPE *m_pThisPrivate, uint8_t iMotorID, float *fSpeed);
 		void (*m_ExeMotionBlcok)(PRIVATE_MEMBER_TYPE *m_pThisPrivate);
 }MotionManageBlock;
 

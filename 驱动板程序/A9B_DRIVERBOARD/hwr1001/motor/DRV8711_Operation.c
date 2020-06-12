@@ -157,6 +157,7 @@ typedef struct
 		unRegSTALL STALL_RegValue;
 		unRegDRIVE DRIVE_RegValue;
 		unRegSTATUS STATUS_RegValue;
+		bool bHighLevelPositiveDir;
 		DRV8711_PinConfig PinConfig_t;
 }PrivateBlock;
 
@@ -432,7 +433,18 @@ bool DRV8711_Forward(PRIVATE_MEMBER_TYPE *pThisPrivate)
 				return false;				
 		}
 		
-		SET_PIN(pPrivate->PinConfig_t.DirPin.GPIO_Port, pPrivate->PinConfig_t.DirPin.GPIO_Pin);
+		if(pPrivate->bHighLevelPositiveDir)
+		{
+				DEBUG_LOG("\r\nDBG dir io set")
+				SET_PIN(pPrivate->PinConfig_t.DirPin.GPIO_Port, pPrivate->PinConfig_t.DirPin.GPIO_Pin);
+//				HAL_GPIO_WritePin (GPIOA, GPIO_PIN_1, GPIO_PIN_SET);
+		}
+		else
+		{
+				DEBUG_LOG("\r\nDBG dir io reset")
+				RESET_PIN(pPrivate->PinConfig_t.DirPin.GPIO_Port, pPrivate->PinConfig_t.DirPin.GPIO_Pin);
+//				HAL_GPIO_WritePin (GPIOA, GPIO_PIN_1, GPIO_PIN_RESET);
+		}
 }
 
 bool DRV8711_Backward(PRIVATE_MEMBER_TYPE *pThisPrivate)
@@ -444,7 +456,16 @@ bool DRV8711_Backward(PRIVATE_MEMBER_TYPE *pThisPrivate)
 				return false;				
 		}
 		
-		SET_PIN(pPrivate->PinConfig_t.DirPin.GPIO_Port, pPrivate->PinConfig_t.DirPin.GPIO_Pin);
+		if(pPrivate->bHighLevelPositiveDir)
+		{
+				DEBUG_LOG("\r\nDBG dir io reset")
+				RESET_PIN(pPrivate->PinConfig_t.DirPin.GPIO_Port, pPrivate->PinConfig_t.DirPin.GPIO_Pin);
+		}
+		else
+		{
+				DEBUG_LOG("\r\nDBG dir io set")
+				SET_PIN(pPrivate->PinConfig_t.DirPin.GPIO_Port, pPrivate->PinConfig_t.DirPin.GPIO_Pin);
+		}
 }
 
 bool DRV8711_Init(DRV8711_Control *Block_t, DRV8711_Params *Params_t)
@@ -508,6 +529,9 @@ bool DRV8711_Init(DRV8711_Control *Block_t, DRV8711_Params *Params_t)
 		DEBUG_LOG("\r\nDBG 8711 CurrentCfg val:%x", Params_t->iCurrentCfg);
 //		
 		EnableMotor(pPrivate);
+		
+		Block_t->m_pDRV8711_Backward = DRV8711_Backward;
+		Block_t->m_pDRV8711_Forward = DRV8711_Forward;
 		
 		Block_t->m_pThisPrivate = pPrivate;
 		

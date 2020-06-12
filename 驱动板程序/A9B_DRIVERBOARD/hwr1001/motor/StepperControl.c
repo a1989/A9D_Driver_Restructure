@@ -49,6 +49,7 @@ typedef struct
 		uint32_t iNominalEndSpeed;
 		StepperParams StepperParams_t;
 		uint16_t arrAccDivisionTable[ACC_TIME_DIVISION][2];
+		void *pDriver;
 }PrivateBlock;
 
 void StepperStop(PRIVATE_MEMBER_TYPE *pPrivate)
@@ -61,7 +62,9 @@ void StepperStop(PRIVATE_MEMBER_TYPE *pPrivate)
 				return;
 		}	
 
-		HAL_TIM_OC_Stop_IT (&pPrivate_t->hTIM, TIM_CHANNEL_1);		
+		DEBUG_LOG("\r\nDBG stepper stop oc")
+		HAL_TIM_OC_Stop_IT (&htim2, TIM_CHANNEL_1);	
+//		HAL_TIM_OC_Stop_IT (&pPrivate_t->hTIM, TIM_CHANNEL_1);		
 }
 
 void StopStepperModerate(PrivateBlock *pPrivate)
@@ -187,6 +190,62 @@ static void CalcCurveForBlockLinear(PrivateBlock *pPrivate, uint32_t iDistance, 
 		}
 }
 
+bool StepperForward(PRIVATE_MEMBER_TYPE *pThisPrivate)
+{
+		DRV8711_Control *pDRV8711 = NULL;
+	
+		PrivateBlock *pPrivate = (PrivateBlock *)pThisPrivate;
+	
+		if(NULL == pPrivate)
+		{
+				printf("\r\nfunc:%s,null pointer", __FUNCTION__);				
+				return false;
+		}			
+		
+		DEBUG_LOG("\r\nStepper dir forward")		
+		
+		switch(pPrivate->StepperParams_t.eDriver)
+		{
+				case eDRV8711:
+					pDRV8711 = pPrivate->pDriver;
+					DEBUG_LOG("\r\nconfig 8711 dir pin")
+					pDRV8711->m_pDRV8711_Forward(pDRV8711->m_pThisPrivate);
+					break;
+				default:
+					break;
+		}
+		
+		return false;
+}
+
+bool StepperBackward(PRIVATE_MEMBER_TYPE *pThisPrivate)
+{
+		DRV8711_Control *pDRV8711 = NULL;
+	
+		PrivateBlock *pPrivate = (PrivateBlock *)pThisPrivate;
+	
+		if(NULL == pPrivate)
+		{
+				printf("\r\nfunc:%s,null pointer", __FUNCTION__);				
+				return false;
+		}			
+		
+		DEBUG_LOG("\r\nStepper dir Backward")		
+		
+		switch(pPrivate->StepperParams_t.eDriver)
+		{
+				case eDRV8711:
+					pDRV8711 = pPrivate->pDriver;
+					DEBUG_LOG("\r\nconfig 8711 dir pin")
+					pDRV8711->m_pDRV8711_Backward(pDRV8711->m_pThisPrivate);
+					break;
+				default:
+					break;
+		}		
+		
+		return false;
+}
+
 bool StepperPrepare(PRIVATE_MEMBER_TYPE *pThisPrivate, float fDistance, float fSpeed)
 {
 		uint32_t iPulseDist;
@@ -201,8 +260,6 @@ bool StepperPrepare(PRIVATE_MEMBER_TYPE *pThisPrivate, float fDistance, float fS
 		}			
 		
 		DEBUG_LOG("\r\nStepper Prepare")
-		
-//		(iDir == 1) ? ;
 		
 		iPulseDist = fabs((fDistance / pPrivate->StepperParams_t.fPitch) * pPrivate->StepperParams_t.iSubdivisionCfg * 200
 								* pPrivate->StepperParams_t.fFeedBackRatio);
@@ -225,7 +282,7 @@ bool StepperPrepare(PRIVATE_MEMBER_TYPE *pThisPrivate, float fDistance, float fS
 void SetTIM_OC(PRIVATE_MEMBER_TYPE *pThisPrivate, TIM_HandleTypeDef *hTIM, uint32_t iPos)
 {
 		uint16_t iCount; 
-		uint16_t iToggleParam = 50;
+		uint16_t iToggleParam = 100;
 		PrivateBlock *pPrivate = (PrivateBlock *)pThisPrivate;
 	
 		if(NULL == pPrivate)
@@ -235,9 +292,10 @@ void SetTIM_OC(PRIVATE_MEMBER_TYPE *pThisPrivate, TIM_HandleTypeDef *hTIM, uint3
 		}			
 		
 		//iCount =__HAL_TIM_GET_COUNTER (&pPrivate->hTIM);
-		iCount =__HAL_TIM_GET_COUNTER (hTIM);
+		iCount = __HAL_TIM_GET_COUNTER (hTIM);
 //		__HAL_TIM_SET_COMPARE (&pPrivate->hTIM, TIM_CHANNEL_1, (uint16_t)(iCount + iToggleParam));
 		__HAL_TIM_SET_COMPARE (&htim2, TIM_CHANNEL_1, (uint16_t)(iCount + iToggleParam));
+//		HAL_TIM_OC_Start_IT (&htim2, TIM_CHANNEL_1);
 }
 
 TIM_HandleTypeDef *GetStepperTimHandle(PRIVATE_MEMBER_TYPE *pThisPrivate)
@@ -289,13 +347,15 @@ void StepperControlInit(StepperControl *pStepper_t, StepperParams *pParams_t)
 					pDRV8711_Params.pDriverPinConfig = pParams_t->pDriverPinConfig;
 					
 					DRV8711_Init(pDRV8711, &pDRV8711_Params);
-					
+					pPrivate->pDriver = pDRV8711;
 					break;
 				case eTMC2590:
 					break;
 				default:
 					break;
 		}
+		
+		pPrivate->StepperParams_t.eDriver = pParams_t->eDriver;
 		
 		switch(pParams_t->eMotorTIM)
 		{
@@ -313,6 +373,8 @@ void StepperControlInit(StepperControl *pStepper_t, StepperParams *pParams_t)
 		pStepper_t->m_pGetStepperTimHandle = GetStepperTimHandle;
 		pStepper_t->m_pStepperStop = StepperStop;
 		pStepper_t->m_pSetTIM_OC = SetTIM_OC;
+		pStepper_t->m_pStepperBackward = StepperBackward;
+		pStepper_t->m_pStepperForward = StepperForward;
 		pStepper_t->m_pThisPrivate = pPrivate;
 		
 		DEBUG_LOG("\r\nstepper init success")

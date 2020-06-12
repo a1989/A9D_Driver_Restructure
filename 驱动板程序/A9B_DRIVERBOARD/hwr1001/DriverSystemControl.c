@@ -197,6 +197,10 @@ void QueryFromHostHandler(const uint8_t *pRawData, const uint8_t iRawDataLen)
 		bool bSwitchValue1 = false;
 		uint8_t iLimitValue = 0;
 	
+		//实时位置和速度
+		float fLinearSpeed;
+		float fLinearPos;
+	
 		//先组合数据
 		arrDataBuffer[0] = 0x0;
 		arrDataBuffer[1] = 0x0;
@@ -224,6 +228,9 @@ void QueryFromHostHandler(const uint8_t *pRawData, const uint8_t iRawDataLen)
 				break;
 			//请求实时位置
 			case REALTIME_LOCATION:
+				DEBUG_LOG("\r\nQuerry linear pos speed")
+				g_MotionBlock_t.m_pGetMotionData(g_MotionBlock_t.m_pThisPrivate, 0, &fLinearPos, &fLinearSpeed);
+				DEBUG_LOG("\r\nlinear speed:%f", fLinearSpeed)
 				break;
 			//请求实时速度
 			case REALTIME_SPEED:

@@ -131,6 +131,7 @@ void HAL_UART_RxCpltCallback (UART_HandleTypeDef* huart) //串口中断回调函
 void HAL_TIM_PeriodElapsedCallback (TIM_HandleTypeDef *htim)		//10ms
 {
 		IncEncoderTableInt *pNode = IncEncoderTableInt_t;
+		
 //		IncEncoderTable *pEncoder = g_IncEncoderTable;
 //	if (htim->Instance == htim4.Instance) //tim4 interrupt
 //	{
@@ -176,13 +177,14 @@ void HAL_TIM_PeriodElapsedCallback (TIM_HandleTypeDef *htim)		//10ms
 	
 //		if (htim->Instance == htim3.Instance) //tim3 interrupt
 //		{
+//			DEBUG_LOG("\r\npointer")
 //			if (htim->Instance->CR1 & 0x0010) //小心注意
 //			{
-//				GetEncoder.rcnt3 -= 1;
+
 //			}
 //			else
 //			{
-//				GetEncoder.rcnt3 += 1;
+
 //			}
 //		}	
 		
@@ -191,8 +193,10 @@ void HAL_TIM_PeriodElapsedCallback (TIM_HandleTypeDef *htim)		//10ms
 //				pEncoder->m_pHandler(pEncoder->pPrivate, htim);
 //				pEncoder = pEncoder->pNext;
 //		}
+
 		while(pNode != NULL)
 		{
+//				DEBUG_LOG("\r\nencoder Int")
 				IncEncoderIntHandler(pNode->m_pThisPrivate, htim);
 				pNode = pNode->pNext;
 		}

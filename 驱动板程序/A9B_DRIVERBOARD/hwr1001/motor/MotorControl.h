@@ -17,6 +17,7 @@ typedef struct
 		bool (*m_pAddLimits)(PRIVATE_MEMBER_TYPE *pThisPrivate, LimitParams *Params_t);
 		bool (*m_pReadLimitByID)(PRIVATE_MEMBER_TYPE *pThisPrivate, uint8_t iMotorID, LimitFunction eFunc, bool *bStatu);
 		void (*m_pExeMotorControl)(PRIVATE_MEMBER_TYPE *pThisPrivate);
+		bool (*m_pGetMotorMoveData)(PRIVATE_MEMBER_TYPE *pThisPrivate, uint8_t iMotorID, float *fPos, float *fSpeed);
 }MotorControl;
 
 
