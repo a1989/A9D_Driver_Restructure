@@ -226,7 +226,7 @@ bool SetMotorMoveData(PRIVATE_MEMBER_TYPE *pThisPrivate, uint8_t iMotorID, uint3
 		return true;
 }
 
-void ExeMotionBlcok(PRIVATE_MEMBER_TYPE *m_pThisPrivate)
+void ExeMotionBlcok(PRIVATE_MEMBER_TYPE *m_pThisPrivate, CmdDataObj *eCmdType)
 {
 		static PrivateBlock *pPrivate_t = NULL;
 	

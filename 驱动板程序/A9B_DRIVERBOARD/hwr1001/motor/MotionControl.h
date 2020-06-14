@@ -28,7 +28,7 @@ typedef struct
 //		void (*m_pGetMotionData)(PRIVATE_MEMBER_TYPE *m_pThisPrivate, MoveParams *Params_t);
 		bool (*m_pGetMotionData)(PRIVATE_MEMBER_TYPE *m_pThisPrivate, uint8_t iMotorID, float *fPos, float *fSpeed);
 		bool (*m_pGetMotorSpeed)(PRIVATE_MEMBER_TYPE *m_pThisPrivate, uint8_t iMotorID, float *fSpeed);
-		void (*m_ExeMotionBlcok)(PRIVATE_MEMBER_TYPE *m_pThisPrivate);
+		void (*m_ExeMotionBlcok)(PRIVATE_MEMBER_TYPE *m_pThisPrivate, CmdDataObj *eCmdType);
 }MotionManageBlock;
 
 bool MotionBlockInit(MotionManageBlock *Block_t);

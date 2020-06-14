@@ -52,6 +52,19 @@ typedef enum
 
 typedef enum
 {
+		MOVE = 0x01,
+		HOME = 0x11,
+		BOARD_RESET,
+		EN_TORQUE,
+		MOTOR_STOP,
+		SET_ID,
+		SET_CURRENT,
+		SET_SUBDIVISION,
+		DO_NOTHING
+}CmdDataObj;
+
+typedef enum
+{
 	eMOTOR_DEFAULT = 0,
 	eSTEPPER,
 	eSTEPPER_ENCODER,

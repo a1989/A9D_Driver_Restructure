@@ -734,7 +734,7 @@ bool GetMotorMoveData(PRIVATE_MEMBER_TYPE *pThisPrivate, uint8_t iMotorID, float
 		return true;
 }
 	
-static void ExeMotorControl(PRIVATE_MEMBER_TYPE *pPrivate)
+static void ExeMotorControl(PRIVATE_MEMBER_TYPE *pPrivate, CmdDataObj *eCmdType)
 {		
 		static MoveNodeParams Params_t;
 		bool bHome;
@@ -823,19 +823,38 @@ static void ExeMotorControl(PRIVATE_MEMBER_TYPE *pPrivate)
 												eHomeStep = eSET_HOME_PARAMS1;
 												//break;
 											case eSET_HOME_PARAMS1:
-												return;
+												pMotorNode->bDirForward = false;
+												pMotorNode->bFindZeroLimit = true;
+												fTarget = -(float)MAX_LENGTH * NEGTIVE_DIRECTION - pMotorNode->fCoordLocation;
+												IncEncoder_t->m_pSetEncoderTarget(IncEncoder_t->m_pThisPrivate, fabs(fTarget));
+												//pMotorNode->iPulseLocation = pMotorNode->iPulseLocation - MAX_LENGTH * NEGTIVE_DIRECTION * 
+												Stepper_t->m_pStepperBackward(Stepper_t->m_pThisPrivate);
+												Stepper_t->m_pStepperPrepare(Stepper_t->m_pThisPrivate, MAX_LENGTH * NEGTIVE_DIRECTION, 3);
 												//Stepper_t->m_pStepperPrepare(Stepper_t->m_pThisPrivate, MAX_LENGTH * NEGTIVE_DIRECTION, 2);
+												eHomeStep = eCHECK_LIMIT_SECOND;
 											case eCHECK_LIMIT_SECOND:
-												if(CheckLimits(pMotorNode, eZERO_LIMIT))
+												if(!ReadLimitByID(pPrivate, *(uint8_t *)Params_t.p_iID, eZero, &bLimitStatu))
+												{														
+														return;
+												}
+												
+												if(bLimitStatu)
 												{
-														eHomeStep = eDONE;
+														DEBUG_LOG("\r\nDBG zero limit touch")
+														IncEncoder_t->m_pSetEncoderValuef(IncEncoder_t->m_pThisPrivate, 0);
+														eHomeStep = eMOVE_REVERSE_DIR;		
+														Delay_ms(10);
 												}
 												else
 												{
+//														DEBUG_LOG("\r\nchange status")
 														break;
 												}
 											case eDONE:
+												IncEncoder_t->m_pSetEncoderValuef(IncEncoder_t->m_pThisPrivate, 0);
+												pMotorNode->fCoordLocation = 0;
 												//SetPositionEnforce(Stepper_t->m_pThisPrivate, 0);
+												*eCmdType = HOME;
 												eExeSteps = eEXE_DONE;
 												break;
 											default:
@@ -844,28 +863,49 @@ static void ExeMotorControl(PRIVATE_MEMBER_TYPE *pPrivate)
 							}
 							else
 							{
-//									switch(eMoveStep)
-//									{
-//											case eSET_PARAMS:
-//													switch(pMotorNode->eMotorType)
-//													{
-//															case eSTEPPER_ENCODER:
-//																Stepper_t = (StepperControl *)pMotorNode->pMotor_t;
-//																//朝Home方向走长距离
-//																fTarget = *(Params_t.p_fTargetPos) - *(pMotorNode->MoveInfo_t.fCurrentPos);
-//																Stepper_t->m_pStepperPrepare(Stepper_t->m_pThisPrivate, MAX_LENGTH * NEGTIVE_DIRECTION, *Params_t.p_fSpeed);
-//																break;
-//															default:
-//																break;
-//													}
-//													//break;
-//													eMoveStep = eWAIT_ARRIVE;
-//											case eWAIT_ARRIVE:
-//													break;
-//											case eARRIVE:
-//													eExeSteps = eEXE_DONE;
-//													break;
-//										}									
+									switch(eMoveStep)
+									{
+											case eSET_PARAMS:
+													switch(pMotorNode->eMotorType)
+													{
+															case eSTEPPER_ENCODER:
+																Stepper_t = (StepperControl *)pMotorNode->pMotor_t;
+																//pMotorNode->bDirForward = true;
+																pMotorNode->bDirForward = (pMotorNode->fCoordLocation < *Params_t.p_fTargetPos) ? true : false;
+																pMotorNode->bFindZeroLimit = false;
+																if(pMotorNode->bDirForward)
+																{
+																		Stepper_t->m_pStepperForward(Stepper_t->m_pThisPrivate);
+																}
+																else
+																{
+																		Stepper_t->m_pStepperBackward(Stepper_t->m_pThisPrivate);
+																}
+																IncEncoder_t->m_pSetEncoderTarget(IncEncoder_t->m_pThisPrivate, 10);
+																Stepper_t->m_pStepperPrepare(Stepper_t->m_pThisPrivate, 
+																														fabs(pMotorNode->fCoordLocation - *Params_t.p_fTargetPos), 
+																														*Params_t.p_fSpeed);
+																eHomeStep = eSET_HOME_PARAMS1;
+																break;
+															default:
+																break;
+													}
+													//break;
+													eMoveStep = eWAIT_ARRIVE;
+											case eWAIT_ARRIVE:
+													if(IncEncoder_t->m_pIncEncoderTargetArrived(IncEncoder_t->m_pThisPrivate))
+													{
+															eMoveStep = eARRIVE;
+													}
+													else
+													{
+															break;
+													}
+											case eARRIVE:
+													*eCmdType = MOVE;
+													eExeSteps = eEXE_DONE;
+													break;
+										}									
 							}
 							
 						#endif

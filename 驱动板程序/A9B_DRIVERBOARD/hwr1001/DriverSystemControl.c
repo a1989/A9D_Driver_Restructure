@@ -436,6 +436,7 @@ void DriverSystemRun(void)
 		uint8_t arrData[16];
 		uint8_t iDataLen = 0;
 		bool bDataAvailabel;
+		CmdDataObj eCmdType = DO_NOTHING;
 	
 		g_Communication_t.m_pPopMessage(g_Communication_t.m_pThisPrivate, arrData, &iDataLen, &bDataAvailabel);
 		//如果收到数据就处理数据
@@ -444,8 +445,22 @@ void DriverSystemRun(void)
 				ProcessMessage(arrData, iDataLen);
 		}
 		
+		
 		g_Communication_t.m_pExeBlock(g_Communication_t.m_pThisPrivate);
-		g_MotionBlock_t.m_ExeMotionBlcok(g_MotionBlock_t.m_pThisPrivate);
+		g_MotionBlock_t.m_ExeMotionBlcok(g_MotionBlock_t.m_pThisPrivate, &eCmdType);
+		switch(eCmdType)
+		{
+				case HOME:
+					arrData[0] = 0x00;
+					arrData[1] = 0x00;
+					arrData[2] = (uint8_t)HOME;
+					DataSendHandler(arrData, 3, eCAN1);
+					break;
+				case MOVE:
+					break;
+				default:
+					break;
+		}
 		//
 		
 		//根据当前的状态确定LED的闪烁情况
