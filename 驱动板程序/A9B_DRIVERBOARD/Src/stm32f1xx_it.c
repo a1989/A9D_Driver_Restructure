@@ -109,7 +109,7 @@ void HardFault_Handler(void)
 void MemManage_Handler(void)
 {
   /* USER CODE BEGIN MemoryManagement_IRQn 0 */
-
+	printf("\r\nMemManage Fault");
   /* USER CODE END MemoryManagement_IRQn 0 */
   while (1)
   {

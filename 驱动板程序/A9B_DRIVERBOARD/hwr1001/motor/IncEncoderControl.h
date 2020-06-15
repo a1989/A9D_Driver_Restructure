@@ -7,7 +7,8 @@
 typedef struct
 {
 		PRIVATE_MEMBER_TYPE *m_pThisPrivate;
-		bool (*m_pGetEncoderValue)(PRIVATE_MEMBER_TYPE *m_pThisPrivate, int32_t *iValue);
+		bool (*m_pGetEncoderLinearValue)(PRIVATE_MEMBER_TYPE *m_pThisPrivate, float	*fValue);
+		bool (*m_pGetEncoderLinearSpeed)(PRIVATE_MEMBER_TYPE *m_pThisPrivate, float	*fValue);
 		void (*m_pInterruptHandler)(PRIVATE_MEMBER_TYPE *m_pThisPrivate, TIM_HandleTypeDef *hTIM);
 		bool (*m_pIncEncoderTargetArrived)(PRIVATE_MEMBER_TYPE *m_pThisPrivate);
 		bool (*m_pSetEncoderTarget)(PRIVATE_MEMBER_TYPE *m_pThisPrivate, float fTarget);

@@ -198,8 +198,9 @@ void QueryFromHostHandler(const uint8_t *pRawData, const uint8_t iRawDataLen)
 		uint8_t iLimitValue = 0;
 	
 		//实时位置和速度
-		float fLinearSpeed;
-		float fLinearPos;
+		uint16_t iLinearSpeed;
+		uint32_t iLinearPos;
+		uint8_t iMotorID;
 	
 		//先组合数据
 		arrDataBuffer[0] = 0x0;
@@ -229,8 +230,9 @@ void QueryFromHostHandler(const uint8_t *pRawData, const uint8_t iRawDataLen)
 			//请求实时位置
 			case REALTIME_LOCATION:
 				DEBUG_LOG("\r\nQuerry linear pos speed")
-				g_MotionBlock_t.m_pGetMotionData(g_MotionBlock_t.m_pThisPrivate, 0, &fLinearPos, &fLinearSpeed);
-				DEBUG_LOG("\r\nlinear speed:%f", fLinearSpeed)
+				iMotorID = 0;
+				g_MotionBlock_t.m_pGetMotorLinearLocation(g_MotionBlock_t.m_pThisPrivate, &iMotorID, &iLinearPos);
+				DEBUG_LOG("\r\nlinear speed:%d", iLinearPos)
 				break;
 			//请求实时速度
 			case REALTIME_SPEED:
@@ -267,13 +269,22 @@ void QueryFromHostHandler(const uint8_t *pRawData, const uint8_t iRawDataLen)
 //上位机命令
 void CommandFromHostHandler(const uint8_t *pRawData, const uint8_t iDataLen)
 {
+		uint32_t iDistRaw;
+		uint32_t iSpeedRaw;
+		uint8_t iMotorID;
+	
 		switch((CmdDataObj)pRawData[0])
 		{
 			case MOVE:
+				DEBUG_LOG("\r\nDBG CMD Move")
 				//将运动数据写入运动控制块
+				iDistRaw = ((uint32_t)pRawData[2] << 8 | pRawData[3]);
+				iSpeedRaw = ((uint32_t)pRawData[4] << 8 | pRawData[5]);
+				iMotorID = 0;
 				if(4 == pRawData[1])
 				{
-						g_MotionBlock_t.m_pSetMotorMoveData(g_MotionBlock_t.m_pThisPrivate, 0, ((uint32_t)pRawData[2] << 8 | pRawData[3]), ((uint32_t)pRawData[4] << 8 | pRawData[5]));
+						
+						g_MotionBlock_t.m_pSetMotorMoveData(g_MotionBlock_t.m_pThisPrivate, &iMotorID, &iDistRaw, &iSpeedRaw);
 				}
 				break;
 			case HOME:
@@ -433,11 +444,13 @@ bool ProcessMessage(const uint8_t *pRawData, const uint8_t iRawDataLen)
 //主程序
 void DriverSystemRun(void)
 {
-		uint8_t arrData[16];
+		uint8_t arrData[16] = {0x00, 0x00};
 		uint8_t iDataLen = 0;
 		bool bDataAvailabel;
 		CmdDataObj eCmdType = DO_NOTHING;
-	
+		uint8_t iMotorID;
+		uint32_t iLinearPos;
+		
 		g_Communication_t.m_pPopMessage(g_Communication_t.m_pThisPrivate, arrData, &iDataLen, &bDataAvailabel);
 		//如果收到数据就处理数据
 		if(bDataAvailabel)
@@ -451,12 +464,17 @@ void DriverSystemRun(void)
 		switch(eCmdType)
 		{
 				case HOME:
-					arrData[0] = 0x00;
-					arrData[1] = 0x00;
 					arrData[2] = (uint8_t)HOME;
 					DataSendHandler(arrData, 3, eCAN1);
 					break;
 				case MOVE:
+					arrData[2] = (uint8_t)MOVE;
+					arrData[3] = 0x02;
+					iMotorID = 0;
+					g_MotionBlock_t.m_pGetMotorLinearLocation(g_MotionBlock_t.m_pThisPrivate, &iMotorID, &iLinearPos);
+					arrData[4] = (iLinearPos >> 8) & 0xFF;
+					arrData[5] = iLinearPos & 0xFF;
+					DataSendHandler(arrData, 6, eCAN1);
 					break;
 				default:
 					break;

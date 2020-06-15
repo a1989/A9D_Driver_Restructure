@@ -13,6 +13,7 @@ typedef struct
 		TIM_HandleTypeDef hTIM;
 		int32_t iPeriodCount;
 		float fPitch;
+		int32_t iCountDelta;
 }PrivateBlock;
 
 IncEncoderTableInt *IncEncoderTableInt_t = NULL;
@@ -21,12 +22,13 @@ bool SetEncoderTarget(PRIVATE_MEMBER_TYPE *m_pThisPrivate, float fTarget)
 {
 		float fRound;
 		PrivateBlock *pPrivate_t = (PrivateBlock *)m_pThisPrivate;
+		
 		if(NULL == pPrivate_t)
 		{
 				printf("\r\nfunc:%s:block null pointer", __FUNCTION__);
 				return false;
 		}				
-
+		DEBUG_LOG("\r\nDBG encoder target %f", fTarget)
 		fRound = fTarget / pPrivate_t->fPitch;
 		pPrivate_t->iTargetCount = pPrivate_t->iCountPerRound * fRound;
 		DEBUG_LOG("\r\nDBG set encoder cur %d", pPrivate_t->iCurrentCount)
@@ -44,12 +46,14 @@ bool SetEncoderValuef(PRIVATE_MEMBER_TYPE *m_pThisPrivate, float fValue)
 		{
 				printf("\r\nfunc:%s:block null pointer", __FUNCTION__);
 				return false;
-		}				
-
+		}						
+		
 		pPrivate_t->iCurrentCount = fValue / pPrivate_t->fPitch * pPrivate_t->iCountPerRound;
 		pPrivate_t->iPeriodCount = pPrivate_t->iCurrentCount / 0xFFFF;
 		
 		__HAL_TIM_SET_COUNTER(&htim3, pPrivate_t->iCurrentCount % 0xFFFF);
+		
+		DEBUG_LOG("\r\nDBG set encoder pos %f", fValue)
 		
 		return true;
 }
@@ -66,7 +70,7 @@ void FreshEncoderCount(PRIVATE_MEMBER_TYPE *m_pThisPrivate)
 		pPrivate_t->iCurrentCount = pPrivate_t->iPeriodCount * 0xFFFF + __HAL_TIM_GET_COUNTER (&htim3);
 }
 
-bool GetEncoderValue(PRIVATE_MEMBER_TYPE *m_pThisPrivate, int32_t *iValue)
+bool GetEncoderLinearValue(PRIVATE_MEMBER_TYPE *m_pThisPrivate, float *fValue)
 {
 		PrivateBlock *pPrivate_t = (PrivateBlock *)m_pThisPrivate;
 		if(NULL == pPrivate_t)
@@ -78,7 +82,39 @@ bool GetEncoderValue(PRIVATE_MEMBER_TYPE *m_pThisPrivate, int32_t *iValue)
 //		pPrivate_t->iCurrentCount = pPrivate_t->iRoundCount * 0xFFFF + __HAL_TIM_GET_COUNTER (&pPrivate_t->hTIM);
 		
 		pPrivate_t->iCurrentCount = pPrivate_t->iPeriodCount * 0xFFFF + __HAL_TIM_GET_COUNTER (&htim3);
-		*iValue = pPrivate_t->iCurrentCount;
+		*fValue = (float)pPrivate_t->iCurrentCount / pPrivate_t->iCountPerRound * pPrivate_t->fPitch;
+		
+		return true;
+}
+
+void EncoderIntSpeedHandler(PRIVATE_MEMBER_TYPE *m_pThisPrivate)
+{
+		static int32_t iCountLast = 0;
+	
+		PrivateBlock *pPrivate_t = (PrivateBlock *)m_pThisPrivate;
+		if(NULL == pPrivate_t)
+		{
+				printf("\r\nfunc:%s:block null pointer", __FUNCTION__);
+				return;
+		}
+				
+		pPrivate_t->iCountDelta = pPrivate_t->iCurrentCount - iCountLast;
+		iCountLast = pPrivate_t->iCurrentCount;
+}
+
+bool GetEncoderLinearSpeed(PRIVATE_MEMBER_TYPE *m_pThisPrivate, float *fValue)
+{
+		PrivateBlock *pPrivate_t = (PrivateBlock *)m_pThisPrivate;
+		if(NULL == pPrivate_t)
+		{
+				printf("\r\nfunc:%s:block null pointer", __FUNCTION__);
+				return false;
+		}				
+						
+//		pPrivate_t->iCurrentCount = pPrivate_t->iRoundCount * 0xFFFF + __HAL_TIM_GET_COUNTER (&pPrivate_t->hTIM);
+		
+		pPrivate_t->iCurrentCount = pPrivate_t->iPeriodCount * 0xFFFF + __HAL_TIM_GET_COUNTER (&htim3);
+		*fValue = (float)pPrivate_t->iCurrentCount / pPrivate_t->iCountPerRound * pPrivate_t->fPitch;
 		
 		return true;
 }
@@ -181,7 +217,8 @@ bool IncEncoderTargetArrived(PRIVATE_MEMBER_TYPE *m_pThisPrivate)
 		{
 				
 				if(pPrivate_t->iCurrentCount >= pPrivate_t->iTargetCount)
-				{						
+				{			
+						DEBUG_LOG("\r\nDBG Arrived+")
 						return true;
 				}
 		}
@@ -189,7 +226,7 @@ bool IncEncoderTargetArrived(PRIVATE_MEMBER_TYPE *m_pThisPrivate)
 		{
 				if(pPrivate_t->iCurrentCount <= pPrivate_t->iTargetCount)
 				{
-						DEBUG_LOG("\r\nDBG Arrived2")
+						DEBUG_LOG("\r\nDBG Arrived-")
 						return true;
 				}				
 		}
@@ -226,11 +263,12 @@ void IncEncoderControlInit(IncEncoderControl *Block_t, EncoderParmas *Params_t)
 		
 		//ÅäÖÃ±àÂëÆ÷ÏßÊý
 		pPrivate_t->iCountPerRound = Params_t->iEncoderLines * Params_t->iMultiplication;	
+//		DEBUG_LOG("\r\nDBG encoder count per round %d", pPrivate_t->iCountPerRound)
 		//ÅäÖÃ±àÂëÆ÷µ±Ç°Öµ
 		pPrivate_t->iCurrentCount = 0;
 		pPrivate_t->fPitch = 10;
 		
-		Block_t->m_pGetEncoderValue = GetEncoderValue;
+		Block_t->m_pGetEncoderLinearValue = GetEncoderLinearValue;
 		Block_t->m_pIncEncoderTargetArrived = IncEncoderTargetArrived;
 		Block_t->m_pThisPrivate = pPrivate_t;
 		Block_t->m_pSetEncoderTarget = SetEncoderTarget;

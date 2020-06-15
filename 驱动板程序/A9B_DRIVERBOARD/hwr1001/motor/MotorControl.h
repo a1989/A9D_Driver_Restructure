@@ -11,13 +11,15 @@ typedef struct
 		bool (*m_pMotorHomeImmediately)(PRIVATE_MEMBER_TYPE *pThisPrivate, uint8_t iMotorID, float fSpeed);
 		bool (*m_pAddMotor)(PRIVATE_MEMBER_TYPE *pThisPrivate, MotorParams *pParams_t);
 		void (*m_pExecuteBlock)(PRIVATE_MEMBER_TYPE *pThisPrivate, CmdDataObj *eCmdType);
-		bool (*m_pSetMoveParams)(PRIVATE_MEMBER_TYPE *pThisPrivate, uint8_t iMotorID, float fDist, float fSpeed);
+		bool (*m_pSetMoveParams)(PRIVATE_MEMBER_TYPE *pThisPrivate, uint8_t *iMotorID, float *fDist, float *fSpeed);
 		uint16_t (*m_pGetMotorPulseParamByID)(uint8_t iMotorID);
 		uint16_t (*m_pGetMotorMoveParamByTIM)(PRIVATE_MEMBER_TYPE *pThisPrivate, TIM_HandleTypeDef *htim, uint16_t *iData);
 		bool (*m_pAddLimits)(PRIVATE_MEMBER_TYPE *pThisPrivate, LimitParams *Params_t);
 		bool (*m_pReadLimitByID)(PRIVATE_MEMBER_TYPE *pThisPrivate, uint8_t iMotorID, LimitFunction eFunc, bool *bStatu);
-		void (*m_pExeMotorControl)(PRIVATE_MEMBER_TYPE *pThisPrivate);
+		void (*m_pExeMotorControl)(PRIVATE_MEMBER_TYPE *pThisPrivate, CmdDataObj *eCmdType);
 		bool (*m_pGetMotorMoveData)(PRIVATE_MEMBER_TYPE *pThisPrivate, uint8_t iMotorID, float *fPos, float *fSpeed);
+		bool (*m_pGetLinearLocation)(PRIVATE_MEMBER_TYPE *pThisPrivate, uint8_t *iMotorID, float *fPos);
+		bool (*m_pGetLinearSpeed)(PRIVATE_MEMBER_TYPE *pThisPrivate, uint8_t *iMotorID, float *fPos);
 }MotorControl;
 
 

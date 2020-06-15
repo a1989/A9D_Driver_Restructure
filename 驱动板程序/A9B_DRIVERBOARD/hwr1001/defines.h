@@ -52,7 +52,7 @@ typedef enum
 
 typedef enum
 {
-		MOVE = 0x01,
+		MOVE = 0x10,
 		HOME = 0x11,
 		BOARD_RESET,
 		EN_TORQUE,
