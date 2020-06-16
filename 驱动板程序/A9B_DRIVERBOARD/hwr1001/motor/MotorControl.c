@@ -43,6 +43,7 @@ typedef struct structMotorList
 //		void (*m_pStopMove)(void *pMotor_t);
 		bool (*m_pLimitTouch)(LimitsNode *LimitNode, LimitFunction eLimit);
 		bool (*m_pTargetArrived)(void *pEncoder_t);		
+		bool bHomed;
 }MotorList;
 
 //每个运动单节点的参数
@@ -769,12 +770,54 @@ bool GetLinearSpeed(PRIVATE_MEMBER_TYPE *pThisPrivate, uint8_t *iMotorID, float 
 				return false;					
 		}		
 	
-		DEBUG_LOG("\r\nDBG start get linear move data")
+		DEBUG_LOG("\r\nDBG start get linear speed data")
 		
 		pEncoder = pNode->pEncoder_t;
 		
 		pEncoder->m_pGetEncoderLinearSpeed(pEncoder->m_pThisPrivate, fSpeed);
-		DEBUG_LOG("\r\nDBG encoder pos:%f", *fSpeed)
+		DEBUG_LOG("\r\nDBG encoder speed:%f", *fSpeed)
+		
+		return true;			
+}
+
+bool SetDirPinHighAsForward(PRIVATE_MEMBER_TYPE *pThisPrivate, uint8_t iMotorID, bool bValue)
+{
+		PrivateBlock *pPrivate = (PrivateBlock *)pThisPrivate;
+		MotorList *pNode = NULL; 
+		StepperControl *pStepper_t = NULL;
+		IncEncoderControl *pIncEncoder_t = NULL;
+	
+		if(NULL == pPrivate)
+		{
+				printf("\r\nfunc:%s:block null pointer", __FUNCTION__);
+				return false;					
+		}					
+		
+		pNode = pPrivate->pMotorList;
+		if(pNode == NULL)
+		{
+				printf("\r\nfunc:%s:no motor", __FUNCTION__);
+				return false;			
+		}
+		
+		//查找到对应的电机节点
+		pNode = FindMotor(pPrivate, iMotorID);
+		if(pNode == NULL)
+		{
+				printf("\r\nfunc:%s:no motor match", __FUNCTION__);
+				return false;					
+		}		
+		
+		switch(pNode->eMotorType)
+		{
+				case eSTEPPER_ENCODER:
+					pStepper_t = pNode->pMotor_t;
+					pIncEncoder_t = pNode->pEncoder_t;
+					pStepper_t->m_pSetStepperDirHighAsForward(pStepper_t->m_pThisPrivate, bValue);
+					pIncEncoder_t->m_pReverseCountDir(pIncEncoder_t->m_pThisPrivate, bValue);
+				default:
+					break;
+		}		
 		
 		return true;			
 }
@@ -957,7 +1000,8 @@ static void ExeMotorControl(PRIVATE_MEMBER_TYPE *pPrivate, CmdDataObj *eCmdType)
 											case eDONE:
 												//停止,修改位置,Home完成
 												IncEncoder_t->m_pSetEncoderValuef(IncEncoder_t->m_pThisPrivate, 0);
-												pMotorNode->fCoordLocation = 0;											
+												pMotorNode->fCoordLocation = 0;	
+												pMotorNode->bHomed = true;
 												//SetPositionEnforce(Stepper_t->m_pThisPrivate, 0);
 												*eCmdType = HOME;												
 												eHomeStep = eSET_HOME_PARAMS0;												
@@ -969,45 +1013,57 @@ static void ExeMotorControl(PRIVATE_MEMBER_TYPE *pPrivate, CmdDataObj *eCmdType)
 									}
 							}
 							else
-							{									
+							{							
+									if(!pMotorNode->bHomed)
+									{
+											printf("\r\n home first");
+											eExeSteps = eEXE_DONE;
+											break;
+									}
 									switch(eMoveStep)
 									{
 											case eSET_PARAMS:
 													DEBUG_LOG("\r\nDBG start move")
-													switch(pMotorNode->eMotorType)
+													if(fabs(pMotorNode->fCoordLocation - *Params_t.p_fTargetPos) > 0.1)
 													{
-															case eSTEPPER_ENCODER:																
-																Stepper_t = (StepperControl *)pMotorNode->pMotor_t;
-																//pMotorNode->bDirForward = true;
-																pMotorNode->bDirForward = (pMotorNode->fCoordLocation < *Params_t.p_fTargetPos) ? true : false;
-																pMotorNode->bFindZeroLimit = false;
-																if(pMotorNode->bDirForward)
-																{
-																		DEBUG_LOG("\r\nDBG dir+")
-																		Stepper_t->m_pStepperForward(Stepper_t->m_pThisPrivate);
-																}
-																else
-																{
-																		DEBUG_LOG("\r\nDBG dir-")
-																		Stepper_t->m_pStepperBackward(Stepper_t->m_pThisPrivate);
-																}
-																
-																DEBUG_LOG("\r\nDBG move target %f", *Params_t.p_fTargetPos)
-																IncEncoder_t->m_pSetEncoderTarget(IncEncoder_t->m_pThisPrivate, *Params_t.p_fTargetPos);
-																Stepper_t->m_pStepperPrepare(Stepper_t->m_pThisPrivate, 
-																														(pMotorNode->fCoordLocation - *Params_t.p_fTargetPos), 
-																														*Params_t.p_fSpeed);
-																pMotorNode->fCoordLocation = *Params_t.p_fTargetPos;
-																break;
-															default:
-																break;
+															switch(pMotorNode->eMotorType)
+															{
+																	case eSTEPPER_ENCODER:																
+																		Stepper_t = (StepperControl *)pMotorNode->pMotor_t;
+																		//pMotorNode->bDirForward = true;
+																		pMotorNode->bDirForward = (pMotorNode->fCoordLocation < *Params_t.p_fTargetPos) ? true : false;
+																		pMotorNode->bFindZeroLimit = false;
+																		if(pMotorNode->bDirForward)
+																		{
+																				DEBUG_LOG("\r\nDBG dir+")
+																				pMotorNode->bDirForward = true;
+																				Stepper_t->m_pStepperForward(Stepper_t->m_pThisPrivate);
+																		}
+																		else
+																		{
+																				DEBUG_LOG("\r\nDBG dir-")
+																				pMotorNode->bDirForward = false;
+																				Stepper_t->m_pStepperBackward(Stepper_t->m_pThisPrivate);
+																		}
+																		
+																		DEBUG_LOG("\r\nDBG move target %f", *Params_t.p_fTargetPos)
+																		IncEncoder_t->m_pSetEncoderTarget(IncEncoder_t->m_pThisPrivate, *Params_t.p_fTargetPos);
+																		Stepper_t->m_pStepperPrepare(Stepper_t->m_pThisPrivate, 
+																																(pMotorNode->fCoordLocation - *Params_t.p_fTargetPos), 
+																																*Params_t.p_fSpeed);
+																		pMotorNode->fCoordLocation = *Params_t.p_fTargetPos;
+																		break;
+																	default:
+																		break;
+															}
+															//break;													
 													}
-													//break;
 													eMoveStep = eWAIT_ARRIVE;
 											case eWAIT_ARRIVE:
 													if(IncEncoder_t->m_pIncEncoderTargetArrived(IncEncoder_t->m_pThisPrivate))
 													{
 															DEBUG_LOG("\r\nDBG target arrived")
+															IncEncoder_t->m_pSetEncoderValuef(IncEncoder_t->m_pThisPrivate, *Params_t.p_fTargetPos);
 															eMoveStep = eARRIVE;
 													}
 													else
@@ -1028,11 +1084,6 @@ static void ExeMotorControl(PRIVATE_MEMBER_TYPE *pPrivate, CmdDataObj *eCmdType)
 				eExeSteps = ePOP_DATA;	
 				break;
 		}
-		
-		
-		
-		
-		
 		
 	
 		//如果是最大位置命令
@@ -1071,7 +1122,8 @@ bool MotorControlInit(MotorControl *Block_t)
 		Block_t->m_pExeMotorControl = ExeMotorControl;
 //		Block_t->m_pGetMotorMoveData = GetMotorMoveData;
 		Block_t->m_pGetLinearLocation = GetLinearLocation;
-		
+		Block_t->m_pGetLinearSpeed = GetLinearSpeed;
+		Block_t->m_pSetDirPinHighAsForward = SetDirPinHighAsForward;
 		g_pMotorTabel = pPrivate_t->pMotorList;
 		
 		

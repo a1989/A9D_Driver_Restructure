@@ -27,6 +27,7 @@ typedef struct
 		void (*m_pHomeAxisImmediately)(PRIVATE_MEMBER_TYPE *m_pThisPrivate, uint8_t iMotorID, uint32_t iSpeed);
 		bool (*m_pGetMotorLinearLocation)(PRIVATE_MEMBER_TYPE *m_pThisPrivate, uint8_t *iMotorID, uint32_t *iLocation);
 		bool (*m_pGetMotorLinearSpeed)(PRIVATE_MEMBER_TYPE *m_pThisPrivate, uint8_t *iMotorID, uint32_t *iSpeed);
+		bool (*m_pSetMotorDirPinHighAsForward)(PRIVATE_MEMBER_TYPE *pThisPrivate, uint8_t *iMotorID, bool *bValue);
 //		void (*m_pGetMotionData)(PRIVATE_MEMBER_TYPE *m_pThisPrivate, MoveParams *Params_t);
 		bool (*m_pGetMotionData)(PRIVATE_MEMBER_TYPE *m_pThisPrivate, uint8_t iMotorID, float *fPos, float *fSpeed);
 		bool (*m_pGetMotorSpeed)(PRIVATE_MEMBER_TYPE *m_pThisPrivate, uint8_t iMotorID, float *fSpeed);

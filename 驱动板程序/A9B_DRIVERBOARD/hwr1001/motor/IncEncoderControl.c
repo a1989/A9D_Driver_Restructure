@@ -3,6 +3,7 @@
 #include "tim.h"
 #include "timer.h"
 #include "encoder.h"
+#include <math.h>
 
 typedef struct
 {
@@ -14,6 +15,7 @@ typedef struct
 		int32_t iPeriodCount;
 		float fPitch;
 		int32_t iCountDelta;
+		bool bReverseCountDir;
 }PrivateBlock;
 
 IncEncoderTableInt *IncEncoderTableInt_t = NULL;
@@ -67,7 +69,14 @@ void FreshEncoderCount(PRIVATE_MEMBER_TYPE *m_pThisPrivate)
 				return;
 		}		
 
-		pPrivate_t->iCurrentCount = pPrivate_t->iPeriodCount * 0xFFFF + __HAL_TIM_GET_COUNTER (&htim3);
+		if(!pPrivate_t->bReverseCountDir)
+		{
+				pPrivate_t->iCurrentCount = pPrivate_t->iPeriodCount * 0xFFFF + __HAL_TIM_GET_COUNTER (&htim3);
+		}
+		else
+		{
+				pPrivate_t->iCurrentCount = -pPrivate_t->iPeriodCount * 0xFFFF - __HAL_TIM_GET_COUNTER (&htim3);
+		}
 }
 
 bool GetEncoderLinearValue(PRIVATE_MEMBER_TYPE *m_pThisPrivate, float *fValue)
@@ -81,23 +90,26 @@ bool GetEncoderLinearValue(PRIVATE_MEMBER_TYPE *m_pThisPrivate, float *fValue)
 						
 //		pPrivate_t->iCurrentCount = pPrivate_t->iRoundCount * 0xFFFF + __HAL_TIM_GET_COUNTER (&pPrivate_t->hTIM);
 		
-		pPrivate_t->iCurrentCount = pPrivate_t->iPeriodCount * 0xFFFF + __HAL_TIM_GET_COUNTER (&htim3);
-		*fValue = (float)pPrivate_t->iCurrentCount / pPrivate_t->iCountPerRound * pPrivate_t->fPitch;
+//		pPrivate_t->iCurrentCount = pPrivate_t->iPeriodCount * 0xFFFF + __HAL_TIM_GET_COUNTER (&htim3);
+		FreshEncoderCount(m_pThisPrivate);
+		*fValue = (float)pPrivate_t->iCurrentCount / pPrivate_t->iCountPerRound * pPrivate_t->fPitch;		
 		
 		return true;
 }
 
-void EncoderIntSpeedHandler(PRIVATE_MEMBER_TYPE *m_pThisPrivate)
+void EncoderIntSpeedHandler(PRIVATE_MEMBER_TYPE *pThisPrivate)
 {
 		static int32_t iCountLast = 0;
 	
-		PrivateBlock *pPrivate_t = (PrivateBlock *)m_pThisPrivate;
+		PrivateBlock *pPrivate_t = (PrivateBlock *)pThisPrivate;
 		if(NULL == pPrivate_t)
 		{
 				printf("\r\nfunc:%s:block null pointer", __FUNCTION__);
 				return;
 		}
-				
+		
+		FreshEncoderCount(pThisPrivate);
+		
 		pPrivate_t->iCountDelta = pPrivate_t->iCurrentCount - iCountLast;
 		iCountLast = pPrivate_t->iCurrentCount;
 }
@@ -110,11 +122,8 @@ bool GetEncoderLinearSpeed(PRIVATE_MEMBER_TYPE *m_pThisPrivate, float *fValue)
 				printf("\r\nfunc:%s:block null pointer", __FUNCTION__);
 				return false;
 		}				
-						
-//		pPrivate_t->iCurrentCount = pPrivate_t->iRoundCount * 0xFFFF + __HAL_TIM_GET_COUNTER (&pPrivate_t->hTIM);
-		
-		pPrivate_t->iCurrentCount = pPrivate_t->iPeriodCount * 0xFFFF + __HAL_TIM_GET_COUNTER (&htim3);
-		*fValue = (float)pPrivate_t->iCurrentCount / pPrivate_t->iCountPerRound * pPrivate_t->fPitch;
+				
+		*fValue = fabs((float)pPrivate_t->iCountDelta / pPrivate_t->iCountPerRound * pPrivate_t->fPitch * 100);
 		
 		return true;
 }
@@ -202,6 +211,18 @@ void IncEncoderIntHandler(PRIVATE_MEMBER_TYPE *m_pThisPrivate, TIM_HandleTypeDef
 //		}
 }
 
+bool ReverseCountDir(PRIVATE_MEMBER_TYPE *m_pThisPrivate, bool bValue)
+{
+		PrivateBlock *pPrivate_t = (PrivateBlock *)m_pThisPrivate;
+		if(NULL == pPrivate_t)
+		{
+				printf("\r\nfunc:%s:block null pointer", __FUNCTION__);
+				return false;
+		}				
+		
+		pPrivate_t->bReverseCountDir = bValue;
+}
+
 bool IncEncoderTargetArrived(PRIVATE_MEMBER_TYPE *m_pThisPrivate)
 {
 		PrivateBlock *pPrivate_t = (PrivateBlock *)m_pThisPrivate;
@@ -273,7 +294,8 @@ void IncEncoderControlInit(IncEncoderControl *Block_t, EncoderParmas *Params_t)
 		Block_t->m_pThisPrivate = pPrivate_t;
 		Block_t->m_pSetEncoderTarget = SetEncoderTarget;
 		Block_t->m_pSetEncoderValuef = SetEncoderValuef;
-		
+		Block_t->m_pGetEncoderLinearSpeed = GetEncoderLinearSpeed;
+		Block_t->m_pReverseCountDir = ReverseCountDir;
 		RegisterEncoderVar(pPrivate_t);
 		
 		__HAL_TIM_CLEAR_IT (&htim3, TIM_IT_UPDATE);

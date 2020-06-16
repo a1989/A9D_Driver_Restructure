@@ -55,7 +55,8 @@ static void DataStructureInit(void)
 		uint32_t iStdId = 0x0;
 		DriverBoardInfo.iMajorVersion = VERSION_MAJOR;
 		DriverBoardInfo.iMinorVersion = VERSION_MINOR;
-	
+		bool bPinHighAsForward;
+		uint8_t iMotorID = 0;
 		//初始化存储器件
 		while(!StorageBlockInit(&g_StorageDataBlock_t))
 		{
@@ -137,8 +138,9 @@ static void DataStructureInit(void)
 				LimitParams_t.GPIO_Pin = GPIO_PIN_8;
 				LimitParams_t.iMotorBelong = 0;
 				g_MotionBlock_t.m_pAddMotorLimit(g_MotionBlock_t.m_pThisPrivate, &LimitParams_t);
-//				MX_TIM4_Init();
-//				TIM4_IT_Interrupt_Switch (1);
+				
+				MX_TIM4_Init();
+				TIM4_IT_Interrupt_Switch (1);
 		#elif HARDWARE_VERSION == SHENZHEN_DESIGN_V1
 				
 		#endif
@@ -160,6 +162,21 @@ static void DataStructureInit(void)
 				DriverBoardInfo.iDriverID = ByteOptions_t.iData;
 				DEBUG_LOG("\r\nRead Board ID:0x%x", DriverBoardInfo.iDriverID);
 				g_Communication_t.m_pAddCommunicationInterface(g_Communication_t.m_pThisPrivate, ParamsCAN1);
+		#elif HARDWARE_VERSION == SHENZHEN_DESIGN_V1
+		#endif
+		
+		#if HARDWARE_VERSION == CHENGDU_DESIGN
+				if(0xB1 == iStdId || 0xA2 == iStdId)
+//				if(0)
+				{
+						bPinHighAsForward = false;
+						g_MotionBlock_t.m_pSetMotorDirPinHighAsForward(g_MotionBlock_t.m_pThisPrivate, &iMotorID, &bPinHighAsForward);
+				}
+				else
+				{
+						bPinHighAsForward = true;
+						g_MotionBlock_t.m_pSetMotorDirPinHighAsForward(g_MotionBlock_t.m_pThisPrivate, &iMotorID, &bPinHighAsForward);
+				}
 		#elif HARDWARE_VERSION == SHENZHEN_DESIGN_V1
 		#endif
 }
@@ -198,7 +215,7 @@ void QueryFromHostHandler(const uint8_t *pRawData, const uint8_t iRawDataLen)
 		uint8_t iLimitValue = 0;
 	
 		//实时位置和速度
-		uint16_t iLinearSpeed;
+		uint32_t iLinearSpeed;
 		uint32_t iLinearPos;
 		uint8_t iMotorID;
 	
@@ -227,15 +244,19 @@ void QueryFromHostHandler(const uint8_t *pRawData, const uint8_t iRawDataLen)
 			//请求最大行程
 			case MAX_LEN:
 				break;
-			//请求实时位置
-			case REALTIME_LOCATION:
+			//请求实时位置速度
+			case REALTIME_LOCATION_SPEED:
 				DEBUG_LOG("\r\nQuerry linear pos speed")
 				iMotorID = 0;
 				g_MotionBlock_t.m_pGetMotorLinearLocation(g_MotionBlock_t.m_pThisPrivate, &iMotorID, &iLinearPos);
-				DEBUG_LOG("\r\nlinear speed:%d", iLinearPos)
-				break;
-			//请求实时速度
-			case REALTIME_SPEED:
+				g_MotionBlock_t.m_pGetMotorLinearSpeed(g_MotionBlock_t.m_pThisPrivate, &iMotorID, &iLinearSpeed);
+				DEBUG_LOG("\r\nlinear pos:%d,speed:%d", iLinearPos, iLinearSpeed)
+				arrDataBuffer[3] = 0x04;
+				arrDataBuffer[4] = (iLinearPos >> 8) & 0xFF;
+				arrDataBuffer[5] = iLimitValue & 0xFF;
+				arrDataBuffer[6] = (iLimitValue >> 8) & 0xFF;
+				arrDataBuffer[7] = iLimitValue & 0xFF;
+				iDataLen = 8;
 				break;
 			//请求限位状态
 			case LIMIT_STATUS:
@@ -311,7 +332,9 @@ void CommandFromHostHandler(const uint8_t *pRawData, const uint8_t iDataLen)
 				break;
 			case SET_SUBDIVISION:
 //				StructMotionBlock.m_SetSubdivision();
-				break;				
+				break;		
+			default:
+				break;
 		}
 }
 

@@ -86,11 +86,11 @@ static void PushSendBuffer(StructSendHandler *Block_t, uint8_t *pData, uint8_t i
 				Block_t->iBufferLen++;
 				Block_t->iWriteIndex = (Block_t->iWriteIndex + 1) % SEND_BUFFER_SIZE;
 			
-				DEBUG_LOG("\r\nrecv buffer:length:%d,write index:%d\r\n", iDataLen, Block_t->iWriteIndex)
+				DEBUG_LOG("\r\nsend buffer:length:%d,write index:%d\r\n", iDataLen, Block_t->iWriteIndex)
 		}
 		else
 		{
-				DEBUG_LOG("\r\nrecv buffer:full\r\n")
+				DEBUG_LOG("\r\nsend buffer:full\r\n")
 		}
 }
 

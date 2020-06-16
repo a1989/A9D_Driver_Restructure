@@ -246,6 +246,22 @@ bool StepperBackward(PRIVATE_MEMBER_TYPE *pThisPrivate)
 		return false;
 }
 
+bool SetStepperDirHighAsForward(PRIVATE_MEMBER_TYPE *pThisPrivate, bool bValue)
+{
+		DRV8711_Control *pDRV8711 = NULL;
+	
+		PrivateBlock *pPrivate = (PrivateBlock *)pThisPrivate;
+	
+		if(NULL == pPrivate)
+		{
+				printf("\r\nfunc:%s,null pointer", __FUNCTION__);				
+				return false;
+		}	
+
+		pDRV8711 = pPrivate->pDriver;
+		pDRV8711->m_pDRV8711_DirPinHighAsForward(pDRV8711->m_pThisPrivate, bValue);
+}
+
 bool StepperPrepare(PRIVATE_MEMBER_TYPE *pThisPrivate, float fDistance, float fSpeed)
 {
 		uint32_t iPulseDist;
@@ -282,7 +298,7 @@ bool StepperPrepare(PRIVATE_MEMBER_TYPE *pThisPrivate, float fDistance, float fS
 void SetTIM_OC(PRIVATE_MEMBER_TYPE *pThisPrivate, TIM_HandleTypeDef *hTIM, uint32_t iPos)
 {
 		uint16_t iCount; 
-		uint16_t iToggleParam = 100;
+		uint16_t iToggleParam = 50;
 		PrivateBlock *pPrivate = (PrivateBlock *)pThisPrivate;
 	
 		if(NULL == pPrivate)
@@ -293,6 +309,10 @@ void SetTIM_OC(PRIVATE_MEMBER_TYPE *pThisPrivate, TIM_HandleTypeDef *hTIM, uint3
 		
 		//iCount =__HAL_TIM_GET_COUNTER (&pPrivate->hTIM);
 		iCount = __HAL_TIM_GET_COUNTER (hTIM);
+		if(iToggleParam < 35)
+		{
+				iToggleParam = 35;
+		}
 //		__HAL_TIM_SET_COMPARE (&pPrivate->hTIM, TIM_CHANNEL_1, (uint16_t)(iCount + iToggleParam));
 		__HAL_TIM_SET_COMPARE (&htim2, TIM_CHANNEL_1, (uint16_t)(iCount + iToggleParam));
 //		HAL_TIM_OC_Start_IT (&htim2, TIM_CHANNEL_1);
@@ -375,6 +395,7 @@ void StepperControlInit(StepperControl *pStepper_t, StepperParams *pParams_t)
 		pStepper_t->m_pSetTIM_OC = SetTIM_OC;
 		pStepper_t->m_pStepperBackward = StepperBackward;
 		pStepper_t->m_pStepperForward = StepperForward;
+		pStepper_t->m_pSetStepperDirHighAsForward = SetStepperDirHighAsForward;
 		pStepper_t->m_pThisPrivate = pPrivate;
 		
 		DEBUG_LOG("\r\nstepper init success")

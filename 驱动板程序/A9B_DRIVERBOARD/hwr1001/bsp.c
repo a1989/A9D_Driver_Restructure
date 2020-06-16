@@ -8,7 +8,7 @@ void BSP_Initializes (void)
 		//At24c512_Init();//初始化EEP
 		Driver_Board_Parameter_Init();//参数读取，必须放在最前面
 		Driver_Can_Init();//CAN滤波器初始化
-		Drv8711_Init(); //DRV8711参数写入，默认参数
+//		Drv8711_Init(); //DRV8711参数写入，默认参数
 		PID_Init();//电机PID参数初始化
 		HAL_TIM_OC_Stop_IT (&htim2, TIM_CHANNEL_1);//停止PWM比较输出
 		//HAL_TIM_OC_Start_IT ( &htim2,TIM_CHANNEL_1 );

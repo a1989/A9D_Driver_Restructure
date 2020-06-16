@@ -33,6 +33,7 @@ typedef struct
 		bool (*m_pStepperPrepare)(PRIVATE_MEMBER_TYPE *pPrivate, float fTarget, float fSpeed);
 		bool (*m_pStepperForward)(PRIVATE_MEMBER_TYPE *pPrivate);
 		bool (*m_pStepperBackward)(PRIVATE_MEMBER_TYPE *pPrivate);
+		bool (*m_pSetStepperDirHighAsForward)(PRIVATE_MEMBER_TYPE *pPrivate, bool bValue);
 		TIM_HandleTypeDef *(*m_pGetStepperTimHandle)(PRIVATE_MEMBER_TYPE *pPrivate);
 }StepperControl;
 

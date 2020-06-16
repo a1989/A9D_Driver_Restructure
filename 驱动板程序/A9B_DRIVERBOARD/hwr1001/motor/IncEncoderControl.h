@@ -13,6 +13,7 @@ typedef struct
 		bool (*m_pIncEncoderTargetArrived)(PRIVATE_MEMBER_TYPE *m_pThisPrivate);
 		bool (*m_pSetEncoderTarget)(PRIVATE_MEMBER_TYPE *m_pThisPrivate, float fTarget);
 		bool (*m_pSetEncoderValuef)(PRIVATE_MEMBER_TYPE *m_pThisPrivate, float fValue);
+		bool (*m_pReverseCountDir)(PRIVATE_MEMBER_TYPE *m_pThisPrivate, bool bValue);
 }IncEncoderControl;
 
 typedef struct IncEncoderTable
@@ -22,7 +23,8 @@ typedef struct IncEncoderTable
 }IncEncoderTableInt;
 
 void IncEncoderControlInit(IncEncoderControl *Block_t, EncoderParmas *Params_t);
+void EncoderIntSpeedHandler(PRIVATE_MEMBER_TYPE *pThisPrivate);
 bool RegisterEncoderVar(PRIVATE_MEMBER_TYPE *pThisPrivate);
-void IncEncoderIntHandler(PRIVATE_MEMBER_TYPE *m_pThisPrivate, TIM_HandleTypeDef *htim);
+void IncEncoderIntHandler(PRIVATE_MEMBER_TYPE *pThisPrivate, TIM_HandleTypeDef *htim);
 
 #endif

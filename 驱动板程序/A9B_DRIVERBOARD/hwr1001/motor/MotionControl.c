@@ -216,7 +216,7 @@ bool GetMotorLinearLocation(PRIVATE_MEMBER_TYPE *pThisPrivate, uint8_t *iMotorID
 bool GetMotorLinearSpeed(PRIVATE_MEMBER_TYPE *pThisPrivate, uint8_t *iMotorID, uint32_t *iSpeed)
 {
 		PrivateBlock *pPrivate_t = NULL;
-		float fLocation;
+		float fSpeed;
 	
 		if(NULL == pThisPrivate)
 		{
@@ -227,9 +227,9 @@ bool GetMotorLinearSpeed(PRIVATE_MEMBER_TYPE *pThisPrivate, uint8_t *iMotorID, u
 		pPrivate_t = (PrivateBlock *)pThisPrivate;		
 
 		
-		pPrivate_t->pMotorControl_t->m_pGetLinearSpeed(pPrivate_t->pMotorControl_t->m_pThisPrivate, iMotorID, &fLocation);		
+		pPrivate_t->pMotorControl_t->m_pGetLinearSpeed(pPrivate_t->pMotorControl_t->m_pThisPrivate, iMotorID, &fSpeed);		
 		
-		*iSpeed = (uint32_t)(fLocation * 10);
+		*iSpeed = (uint32_t)(fSpeed * 10);
 		
 		return true;				
 }
@@ -268,6 +268,23 @@ bool SetMotorMoveData(PRIVATE_MEMBER_TYPE *pThisPrivate, uint8_t *iMotorID, uint
 		pPrivate_t->pMotorControl_t->m_pSetMoveParams(pPrivate_t->pMotorControl_t->m_pThisPrivate, iMotorID, &fTarget, &fSpeed);
 		
 		return true;
+}
+
+bool SetMotorDirPinHighAsForward(PRIVATE_MEMBER_TYPE *pThisPrivate, uint8_t *iMotorID, bool *bValue)
+{
+		PrivateBlock *pPrivate_t = NULL;
+	
+		if(NULL == pThisPrivate)
+		{
+				printf("\r\nfunc:%s:block null pointer", __FUNCTION__);
+				return false;
+		}		
+
+		pPrivate_t = (PrivateBlock *)pThisPrivate;		
+
+		pPrivate_t->pMotorControl_t->m_pSetDirPinHighAsForward(pPrivate_t->pMotorControl_t->m_pThisPrivate, *iMotorID, *bValue);
+		
+		return true;		
 }
 
 void ExeMotionBlcok(PRIVATE_MEMBER_TYPE *m_pThisPrivate, CmdDataObj *eCmdType)
@@ -332,6 +349,7 @@ bool MotionBlockInit(MotionManageBlock *Block_t)
 		Block_t->m_ExeMotionBlcok = ExeMotionBlcok;
 		Block_t->m_pGetMotorLinearLocation = GetMotorLinearLocation;
 		Block_t->m_pGetMotorLinearSpeed = GetMotorLinearSpeed;
+		Block_t->m_pSetMotorDirPinHighAsForward = SetMotorDirPinHighAsForward;
 				
 		return true;
 }

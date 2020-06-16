@@ -231,7 +231,7 @@ bool SetRegisterDefaultCTRL(PrivateBlock *pPrivate)
 		pPrivate->CTRL_RegValue.structReg.ENBL = BIN_0;
 		pPrivate->CTRL_RegValue.structReg.RDIR = BIN_1;
 		pPrivate->CTRL_RegValue.structReg.RSTEP = BIN_0;
-		pPrivate->CTRL_RegValue.structReg.MODE = BIN_100;
+		pPrivate->CTRL_RegValue.structReg.MODE = BIN_101;
 		pPrivate->CTRL_RegValue.structReg.EXSTALL = BIN_0;
 		pPrivate->CTRL_RegValue.structReg.ISGAIN = BIN_0;
 		pPrivate->CTRL_RegValue.structReg.DTIME = BIN_11;
@@ -245,7 +245,7 @@ bool SetRegisterDefaultCTRL(PrivateBlock *pPrivate)
 
 bool SetRegisterDefaultTORQUE(PrivateBlock *pPrivate)
 {
-		pPrivate->TORQUE_RegValue.structReg.TORQUE = 0xFF;
+		pPrivate->TORQUE_RegValue.structReg.TORQUE = 0x80;
 		pPrivate->TORQUE_RegValue.structReg.SIMPLTH = BIN_1;
 	
 		DEBUG_LOG("\r\nConfig TORQUE Reg:0x%x", pPrivate->TORQUE_RegValue.iRegValue)
@@ -468,6 +468,20 @@ bool DRV8711_Backward(PRIVATE_MEMBER_TYPE *pThisPrivate)
 		}
 }
 
+bool DRV8711_DirPinHighAsForward(PRIVATE_MEMBER_TYPE *pThisPrivate, bool bValue)
+{
+		PrivateBlock *pPrivate = (PrivateBlock *)pThisPrivate;
+		if(NULL == pPrivate)
+		{
+				printf("\r\nfunc:%s:malloc 8711 block failed", __FUNCTION__);
+				return false;				
+		}
+
+		
+		pPrivate->bHighLevelPositiveDir = bValue;
+		DEBUG_LOG("\r\nDBG 8711 pin high as forward %d", pPrivate->bHighLevelPositiveDir)
+}
+
 bool DRV8711_Init(DRV8711_Control *Block_t, DRV8711_Params *Params_t)
 {		
 		PrivateBlock *pPrivate = (PrivateBlock *)malloc(sizeof(PrivateBlock));
@@ -501,7 +515,9 @@ bool DRV8711_Init(DRV8711_Control *Block_t, DRV8711_Params *Params_t)
 		GPIO_InitPullDown(pPrivate->PinConfig_t.SleepPin.GPIO_Port, pPrivate->PinConfig_t.SleepPin.GPIO_Pin);
 		GPIO_InitNoPull(pPrivate->PinConfig_t.DirPin.GPIO_Port, pPrivate->PinConfig_t.DirPin.GPIO_Pin);
 		GPIO_InitNoPull(pPrivate->PinConfig_t.CSPin.GPIO_Port, pPrivate->PinConfig_t.CSPin.GPIO_Pin);
-			
+		
+		pPrivate->bHighLevelPositiveDir = false;
+		
 		DRV8711_Reset(&pPrivate->PinConfig_t);
 		DRV8711_SleepDisable(&pPrivate->PinConfig_t);
 			
@@ -525,14 +541,16 @@ bool DRV8711_Init(DRV8711_Control *Block_t, DRV8711_Params *Params_t)
 		Delay_ms(1);
 		DRV8711_SetSenseGain(pPrivate, 5);
 		Delay_ms(1);
-		DRV8711_SetTorque(pPrivate, Params_t->iCurrentCfg);
+		DRV8711_SetTorque(pPrivate, 0);
+		
+//		DRV8711_SetTorque(pPrivate, Params_t->iCurrentCfg);
 		DEBUG_LOG("\r\nDBG 8711 CurrentCfg val:%x", Params_t->iCurrentCfg);
 //		
 		EnableMotor(pPrivate);
 		
 		Block_t->m_pDRV8711_Backward = DRV8711_Backward;
 		Block_t->m_pDRV8711_Forward = DRV8711_Forward;
-		
+		Block_t->m_pDRV8711_DirPinHighAsForward = DRV8711_DirPinHighAsForward;
 		Block_t->m_pThisPrivate = pPrivate;
 		
 //		uint16_t iData;

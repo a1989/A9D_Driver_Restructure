@@ -20,6 +20,7 @@ typedef struct
 		bool (*m_pGetMotorMoveData)(PRIVATE_MEMBER_TYPE *pThisPrivate, uint8_t iMotorID, float *fPos, float *fSpeed);
 		bool (*m_pGetLinearLocation)(PRIVATE_MEMBER_TYPE *pThisPrivate, uint8_t *iMotorID, float *fPos);
 		bool (*m_pGetLinearSpeed)(PRIVATE_MEMBER_TYPE *pThisPrivate, uint8_t *iMotorID, float *fPos);
+		bool (*m_pSetDirPinHighAsForward)(PRIVATE_MEMBER_TYPE *pThisPrivate, uint8_t iMotorID, bool bValue);
 }MotorControl;
 
 
