@@ -7,8 +7,9 @@
 #include "interrupt.h"
 
 #define ACC_TIME_DIVISION	20
+#define DEC_TIME_DIVISION	20
 
-//标准速度参考表, 速度为10000个脉冲每秒, 0.4秒加速, 抛物线形
+//标准速度参考表, 速度为10000个脉冲每秒, 0.4秒加速, 两个抛物线组成的S形
 //转速,距离
 const uint16_t arrSpeedTable[ACC_TIME_DIVISION][2] = {
 {49,0},
@@ -49,7 +50,20 @@ typedef struct
 		uint32_t iNominalEndSpeed;
 		StepperParams StepperParams_t;
 		uint16_t arrAccDivisionTable[ACC_TIME_DIVISION][2];
+		uint16_t arrDecDivisionTable[DEC_TIME_DIVISION][2];
 		void *pDriver;
+		bool bPlateauAll;
+		uint32_t iAccDist;
+		uint32_t iPlatDist;
+		uint32_t iDecDist;
+	
+		bool bAccAddIndex;
+		uint32_t iAccTableIndex;
+		uint32_t iAccAccumulation;
+	
+		bool bDecAddIndex;
+		uint32_t iDecTableIndex;
+		uint32_t iDecAccumulation;
 }PrivateBlock;
 
 void StepperStop(PRIVATE_MEMBER_TYPE *pPrivate)
@@ -80,6 +94,88 @@ void StopStepperModerate(PrivateBlock *pPrivate)
 		HAL_TIM_OC_Stop_IT (&pPrivate_t->hTIM, TIM_CHANNEL_1);
 }
 
+void SetTIM_OC(PRIVATE_MEMBER_TYPE *pThisPrivate, TIM_HandleTypeDef *hTIM, uint32_t iPos)
+{
+		uint16_t iCount; 
+		uint16_t iToggleParam = 50;
+		PrivateBlock *pPrivate = (PrivateBlock *)pThisPrivate;
+
+		
+	
+		if(NULL == pPrivate)
+		{
+				printf("\r\nfunc:%s,null pointer", __FUNCTION__);				
+				return;
+		}			
+		
+		//iCount =__HAL_TIM_GET_COUNTER (&pPrivate->hTIM);
+		iCount = __HAL_TIM_GET_COUNTER (hTIM);
+		
+		//如果是全程匀速的情况
+		if(0)
+		{
+				
+		}
+		else
+		{
+				//加减速情况
+				//当前处于加速段
+				if(iPos < pPrivate->iAccDist)
+				{
+						if(pPrivate->bAccAddIndex)
+						{
+								//累加一段距离
+								pPrivate->iAccAccumulation += pPrivate->arrAccDivisionTable[pPrivate->iAccTableIndex][1];
+								pPrivate->bAccAddIndex = false;
+						}
+						if(iPos > pPrivate->iAccAccumulation)
+						{
+								pPrivate->iAccTableIndex++;
+								if(pPrivate->iAccTableIndex > 19)
+								{
+										pPrivate->iAccTableIndex = 19;
+								}
+								pPrivate->bAccAddIndex = true;
+						}
+						
+						iToggleParam = pPrivate->arrAccDivisionTable[pPrivate->iAccTableIndex][0];
+				}
+				//匀速段
+				else if(iPos >= pPrivate->iAccDist && iPos < pPrivate->iDecDist)
+				{
+				}
+				//减速段
+				else
+				{
+						if(pPrivate->bDecAddIndex)
+						{
+								//累加一段距离
+								pPrivate->iDecAccumulation += pPrivate->arrDecDivisionTable[pPrivate->iDecTableIndex][1];
+								pPrivate->bDecAddIndex = false;
+						}
+						if(iPos > pPrivate->iDecAccumulation)
+						{
+								pPrivate->iDecTableIndex++;
+								if(pPrivate->iDecTableIndex > 19)
+								{
+										pPrivate->iDecTableIndex = 19;
+								}
+								pPrivate->bDecAddIndex = true;
+						}
+						
+						iToggleParam = pPrivate->arrDecDivisionTable[pPrivate->iDecTableIndex][0];						
+				}
+		}
+		
+		if(iToggleParam < 35)
+		{
+				iToggleParam = 35;
+		}
+//		__HAL_TIM_SET_COMPARE (&pPrivate->hTIM, TIM_CHANNEL_1, (uint16_t)(iCount + iToggleParam));
+		__HAL_TIM_SET_COMPARE (&htim2, TIM_CHANNEL_1, (uint16_t)(iCount + iToggleParam));
+//		HAL_TIM_OC_Start_IT (&htim2, TIM_CHANNEL_1);
+}
+
 static void CalcCurveForBlockLinear(PrivateBlock *pPrivate, uint32_t iDistance, uint32_t iSpeed)
 {
 		uint32_t iStartSpeed;
@@ -89,12 +185,16 @@ static void CalcCurveForBlockLinear(PrivateBlock *pPrivate, uint32_t iDistance, 
 		float fAccDist;
 		float fDecDist;
 		float fPlateauDist;
-		float fZoomFactorAcc;
+		float fZoomFactorAcc = 1.0;
+		float fZoomFactorDec = 1.0;
 		float fMaxSpeed;
 		float fCurveMultipleAcc = 1.0;
-		bool bPlateauAll = false;
-		int i = 0;
+		float fCurveMultipleDec = 1.0;
+		bool bPlateauAll = false;		
 		float fTimeTickAcc;
+		float fTimeTickDec;
+		int i = 0;
+	
 		PrivateBlock *pPrivate_t = (PrivateBlock *)pPrivate;
 		
 		if(NULL == pPrivate_t)
@@ -102,6 +202,13 @@ static void CalcCurveForBlockLinear(PrivateBlock *pPrivate, uint32_t iDistance, 
 				printf("\r\nfunc:%s,null pointer", __FUNCTION__);				
 				return;
 		}	
+		
+		pPrivate_t->bAccAddIndex = true;
+		pPrivate_t->iAccTableIndex = 0;
+		pPrivate_t->iAccAccumulation = 0;
+		pPrivate_t->bDecAddIndex = true;
+		pPrivate_t->iDecTableIndex = 0;
+		pPrivate_t->iDecAccumulation = 0;
 		
 		iStartSpeed = pPrivate_t->iNominalStartSpeed;
 		iEndSpeed = pPrivate_t->iNominalEndSpeed;
@@ -145,9 +252,10 @@ static void CalcCurveForBlockLinear(PrivateBlock *pPrivate, uint32_t iDistance, 
 				{
 						//梯形退化为三角形
 						fZoomFactorAcc = (float)iDistance / ( fAccDist + fDecDist );
-						
+						fZoomFactorDec = (float)iDistance / ( fAccDist + fDecDist );
+					
 						fAccDist = fAccDist * fZoomFactorAcc;
-						fDecDist = fDecDist * fZoomFactorAcc;
+						fDecDist = fDecDist * fZoomFactorDec;
 						//重新计算所能达到的速度 V0 * t + a' * t ^ 2 / 2 = AccDist
 						//a' = 2 * (AccDist - V0 * t) / t ^ 2
 						//Vt = V0 + a' * t = V0 + 2 * (AccDist - V0 * t) / t
@@ -177,9 +285,22 @@ static void CalcCurveForBlockLinear(PrivateBlock *pPrivate, uint32_t iDistance, 
 								pPrivate_t->arrAccDivisionTable[i][0] = (uint16_t)((float)2000000 / ((fZoomFactorAcc * (float)arrSpeedTable[i][0] * fCurveMultipleAcc + iStartSpeed) * 2));
 								pPrivate_t->arrAccDivisionTable[i][1] = (uint16_t)((float)arrSpeedTable[i][0] * fTimeTickAcc);
 								pPrivate_t->arrAccDivisionTable[i][0] = (uint16_t) ((float)pPrivate_t->arrAccDivisionTable[i][0]);
-								printf("\r\n%d,%d", pPrivate_t->arrAccDivisionTable[i][0], pPrivate_t->arrAccDivisionTable[i][1]);
+//								printf("\r\n%d,%d", pPrivate_t->arrAccDivisionTable[i][0], pPrivate_t->arrAccDivisionTable[i][1]);
 						}
-
+						
+						fCurveMultipleDec = (float)(fMaxSpeed - iEndSpeed) / 10000;
+						for(i = 0; i < DEC_TIME_DIVISION; i++)
+						{
+								pPrivate_t->arrDecDivisionTable[DEC_TIME_DIVISION - i - 1][0] = (uint16_t)((float)2000000 / ((fZoomFactorDec * (float)arrSpeedTable[i][0] * fCurveMultipleDec + iEndSpeed) * 2));
+								pPrivate_t->arrDecDivisionTable[DEC_TIME_DIVISION - i - 1][1] = (uint16_t)((float)arrSpeedTable[i][0] * fTimeTickDec);
+								pPrivate_t->arrDecDivisionTable[DEC_TIME_DIVISION - i - 1][0] = (uint16_t) ((float)pPrivate_t->arrDecDivisionTable[DEC_TIME_DIVISION - i - 1][0]);
+//								printf("\r\n%d,%d", pPrivate_t->arrDecDivisionTable[ACC_TIME_DIVISION - i - 1][0], structParams->arrDecDivisionTable[ACC_TIME_DIVISION - i - 1][1]);
+						}
+						
+						pPrivate_t->iAccDist = fAccDist;
+						pPrivate_t->iDecDist = fDecDist;
+						pPrivate_t->iPlatDist = fPlateauDist;
+						pPrivate_t->iDecAccumulation = pPrivate_t->iAccDist + pPrivate_t->iPlatDist;
 				}
 				//至此S曲线段参数已全部确定					
 		}
@@ -187,6 +308,18 @@ static void CalcCurveForBlockLinear(PrivateBlock *pPrivate, uint32_t iDistance, 
 		{
 				fMaxSpeed = min(iStartSpeed, iEndSpeed);
 				bPlateauAll = true;
+		}
+		
+		if(bPlateauAll)
+		{
+				pPrivate_t->bPlateauAll = bPlateauAll;
+				for(i = 0; i < ACC_TIME_DIVISION; i++)
+				{
+						pPrivate_t->arrAccDivisionTable[i][0] = (uint16_t)((float)2000000 / ((fZoomFactorAcc * (float)arrSpeedTable[i][0] * fCurveMultipleAcc + iStartSpeed) * 2));
+						pPrivate_t->arrAccDivisionTable[i][1] = (uint16_t)((float)arrSpeedTable[i][0] * fTimeTickAcc);
+						pPrivate_t->arrAccDivisionTable[i][0] = (uint16_t) ((float)pPrivate_t->arrAccDivisionTable[i][0]);
+						printf("\r\n%d,%d", pPrivate_t->arrAccDivisionTable[i][0], pPrivate_t->arrAccDivisionTable[i][1]);
+				}				
 		}
 }
 
@@ -277,46 +410,26 @@ bool StepperPrepare(PRIVATE_MEMBER_TYPE *pThisPrivate, float fDistance, float fS
 		
 		DEBUG_LOG("\r\nStepper Prepare")
 		
+		//计算脉冲距离
 		iPulseDist = fabs((fDistance / pPrivate->StepperParams_t.fPitch) * pPrivate->StepperParams_t.iSubdivisionCfg * 200
 								* pPrivate->StepperParams_t.fFeedBackRatio);
 		
+		//计算脉冲速度
 		iPulseSpeed = (fSpeed / pPrivate->StepperParams_t.fPitch) * pPrivate->StepperParams_t.iSubdivisionCfg * 200
 								* pPrivate->StepperParams_t.fFeedBackRatio;
 		
+		//计算起始和收尾脉冲速度
 		pPrivate->iNominalStartSpeed = (float)MOTOR_START_SPEED * pPrivate->StepperParams_t.fFeedBackRatio;
 		pPrivate->iNominalStartSpeed = (float)MOTOR_END_SPEED * pPrivate->StepperParams_t.fFeedBackRatio;
 		
-		CalcCurveForBlockLinear(pThisPrivate, iPulseDist, iPulseSpeed);
-		
 		DEBUG_LOG("\r\nStart calc curve")
-		
+//		CalcCurveForBlockLinear(pThisPrivate, iPulseDist, iPulseSpeed);
+			
 		//HAL_TIM_OC_Start_IT (&pPrivate->hTIM, TIM_CHANNEL_1);
 		HAL_TIM_OC_Start_IT (&htim2, TIM_CHANNEL_1);
 		DEBUG_LOG("\r\nStart OC")
 }
 
-void SetTIM_OC(PRIVATE_MEMBER_TYPE *pThisPrivate, TIM_HandleTypeDef *hTIM, uint32_t iPos)
-{
-		uint16_t iCount; 
-		uint16_t iToggleParam = 50;
-		PrivateBlock *pPrivate = (PrivateBlock *)pThisPrivate;
-	
-		if(NULL == pPrivate)
-		{
-				printf("\r\nfunc:%s,null pointer", __FUNCTION__);				
-				return;
-		}			
-		
-		//iCount =__HAL_TIM_GET_COUNTER (&pPrivate->hTIM);
-		iCount = __HAL_TIM_GET_COUNTER (hTIM);
-		if(iToggleParam < 35)
-		{
-				iToggleParam = 35;
-		}
-//		__HAL_TIM_SET_COMPARE (&pPrivate->hTIM, TIM_CHANNEL_1, (uint16_t)(iCount + iToggleParam));
-		__HAL_TIM_SET_COMPARE (&htim2, TIM_CHANNEL_1, (uint16_t)(iCount + iToggleParam));
-//		HAL_TIM_OC_Start_IT (&htim2, TIM_CHANNEL_1);
-}
 
 TIM_HandleTypeDef *GetStepperTimHandle(PRIVATE_MEMBER_TYPE *pThisPrivate)
 {
@@ -400,5 +513,3 @@ void StepperControlInit(StepperControl *pStepper_t, StepperParams *pParams_t)
 		
 		DEBUG_LOG("\r\nstepper init success")
 }
-
-

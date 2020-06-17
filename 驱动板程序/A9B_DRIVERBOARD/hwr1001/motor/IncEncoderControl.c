@@ -16,6 +16,8 @@ typedef struct
 		float fPitch;
 		int32_t iCountDelta;
 		bool bReverseCountDir;
+		int32_t iRelativeDistStart;
+		int32_t iRelativeDist;
 }PrivateBlock;
 
 IncEncoderTableInt *IncEncoderTableInt_t = NULL;
@@ -36,7 +38,8 @@ bool SetEncoderTarget(PRIVATE_MEMBER_TYPE *m_pThisPrivate, float fTarget)
 		DEBUG_LOG("\r\nDBG set encoder cur %d", pPrivate_t->iCurrentCount)
 		DEBUG_LOG("\r\nDBG set encoder tar %d", pPrivate_t->iTargetCount)
 		pPrivate_t->bCountUp = (pPrivate_t->iTargetCount > pPrivate_t->iCurrentCount) ? true : false;
-				
+		pPrivate_t->iRelativeDistStart = pPrivate_t->iCurrentCount;
+		
 		return true;
 }
 
@@ -77,6 +80,21 @@ void FreshEncoderCount(PRIVATE_MEMBER_TYPE *m_pThisPrivate)
 		{
 				pPrivate_t->iCurrentCount = -pPrivate_t->iPeriodCount * 0xFFFF - __HAL_TIM_GET_COUNTER (&htim3);
 		}
+		
+		pPrivate_t->iRelativeDist = pPrivate_t->iCurrentCount - pPrivate_t->iRelativeDistStart;
+}
+
+bool GetEncoderRelativeValueAbs(PRIVATE_MEMBER_TYPE *m_pThisPrivate, uint32_t *iValue)
+{
+		PrivateBlock *pPrivate_t = (PrivateBlock *)m_pThisPrivate;
+		if(NULL == pPrivate_t)
+		{
+				printf("\r\nfunc:%s:block null pointer", __FUNCTION__);
+				return false;
+		}	
+
+		*iValue = abs(pPrivate_t->iRelativeDist);
+		return true;
 }
 
 bool GetEncoderLinearValue(PRIVATE_MEMBER_TYPE *m_pThisPrivate, float *fValue)
@@ -296,6 +314,8 @@ void IncEncoderControlInit(IncEncoderControl *Block_t, EncoderParmas *Params_t)
 		Block_t->m_pSetEncoderValuef = SetEncoderValuef;
 		Block_t->m_pGetEncoderLinearSpeed = GetEncoderLinearSpeed;
 		Block_t->m_pReverseCountDir = ReverseCountDir;
+		Block_t->m_pGetEncoderRelativeValueAbs = GetEncoderRelativeValueAbs;
+		
 		RegisterEncoderVar(pPrivate_t);
 		
 		__HAL_TIM_CLEAR_IT (&htim3, TIM_IT_UPDATE);

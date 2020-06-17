@@ -8,7 +8,7 @@
 #define SAMPLING                    0x01    // 采样标记
 #define TXD                         0x02    // 发送数据标记
 #define MAX_SPEED                   200
-#define abs(x)    ((x)<0?(-x):(x))
+//#define abs(x)    ((x)<0?(-x):(x))
 #define SENDBUFF_SIZE               100     // 串口DMA发送缓冲区大小
 
 // 定义定时器预分频，定时器实际时钟频率为：72MHz/（STEPMOTOR_TIMx_PRESCALER+1）

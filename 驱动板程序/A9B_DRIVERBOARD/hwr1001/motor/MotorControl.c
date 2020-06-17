@@ -305,6 +305,7 @@ void MotorIntHandler(PRIVATE_MEMBER_TYPE *pPrivate, TIM_HandleTypeDef *hTIM)
 		MotorList *Motor_t = pPrivate_t->pMotorList;
 		StepperControl *pStepper_t = NULL;
 		IncEncoderControl *pIncEncoder_t = NULL;
+		uint32_t iRelativeValue;
 	
 		if(NULL == pPrivate_t)
 		{
@@ -312,20 +313,16 @@ void MotorIntHandler(PRIVATE_MEMBER_TYPE *pPrivate, TIM_HandleTypeDef *hTIM)
 				return;
 		}			
 		
-		//DEBUG_LOG("\r\n1")
-		
 		while(Motor_t != NULL)
 		{
-//				DEBUG_LOG("\r\nM1.0")
 				if(Motor_t->hMotorTim == hTIM)
 				{
-//						DEBUG_LOG("\r\nM1.1")
 						break;
 				}
 				
 				Motor_t = Motor_t->pNext_t;
 		}
-//		DEBUG_LOG("\r\nM2")
+
 		if(NULL == Motor_t)
 		{
 				printf("\r\nfunc:%s:no motor", __FUNCTION__);
@@ -346,7 +343,6 @@ void MotorIntHandler(PRIVATE_MEMBER_TYPE *pPrivate, TIM_HandleTypeDef *hTIM)
 					{
 							if(Motor_t->m_pLimitTouch(Motor_t->pLimitsList, eZero))
 							{
-									//DEBUG_LOG("\r\n2")
 									pStepper_t->m_pStepperStop(pStepper_t->m_pThisPrivate);
 									return;
 							}
@@ -355,23 +351,20 @@ void MotorIntHandler(PRIVATE_MEMBER_TYPE *pPrivate, TIM_HandleTypeDef *hTIM)
 					{
 							if(Motor_t->m_pLimitTouch(Motor_t->pLimitsList, ePositive))
 							{
-									//DEBUG_LOG("\r\n3")
 									pStepper_t->m_pStepperStop(pStepper_t->m_pThisPrivate);
 									return;
 							}							
 					}
-					
-					
-					
+										
 					if(!Motor_t->bFindZeroLimit && Motor_t->m_pTargetArrived(pIncEncoder_t->m_pThisPrivate))
 //					if(0)
 					{
-							//DEBUG_LOG("\r\n4")
 							pStepper_t->m_pStepperStop(pStepper_t->m_pThisPrivate);
 					}
 					else
 					{
-							pStepper_t->m_pSetTIM_OC(pStepper_t->m_pThisPrivate, hTIM, 0);
+							pIncEncoder_t->m_pGetEncoderRelativeValueAbs(pIncEncoder_t->m_pThisPrivate, &iRelativeValue);
+							SetTIM_OC(pStepper_t->m_pThisPrivate, hTIM, iRelativeValue);
 					}					
 					break;
 				default:
