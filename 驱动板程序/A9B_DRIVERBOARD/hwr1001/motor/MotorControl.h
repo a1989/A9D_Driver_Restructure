@@ -8,7 +8,7 @@ typedef struct
 		PRIVATE_MEMBER_TYPE *m_pThisPrivate;
 	
 //		void (*m_pHomeAxis)(PRIVATE_MEMBER_TYPE *pThisPrivate, MoveParams *pParams_t);
-		bool (*m_pMotorHomeImmediately)(PRIVATE_MEMBER_TYPE *pThisPrivate, uint8_t iMotorID, float fSpeed);
+		bool (*m_pMotorHomeImmediately)(PRIVATE_MEMBER_TYPE *pThisPrivate, uint8_t iMotorID, uint32_t iSpeed);
 		bool (*m_pAddMotor)(PRIVATE_MEMBER_TYPE *pThisPrivate, MotorParams *pParams_t);
 		void (*m_pExecuteBlock)(PRIVATE_MEMBER_TYPE *pThisPrivate, CmdDataObj *eCmdType);
 		bool (*m_pSetMoveParams)(PRIVATE_MEMBER_TYPE *pThisPrivate, uint8_t *iMotorID, float *fDist, float *fSpeed);

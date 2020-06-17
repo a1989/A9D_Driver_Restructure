@@ -63,7 +63,7 @@ typedef struct
 		bool *p_bHome;
 		
 		//Home方向
-		uint8_t *p_iHomeDir;
+		int8_t *p_iHomeDir;
 	
 		//根据需要指向一个或一组数据
 		float *p_fSpeed;
@@ -138,7 +138,7 @@ MoveNodeList *MallocMoveNode_t(void)
 				#if HARDWARE_VERSION == CHENGDU_DESIGN || HARDWARE_VERSION == SHENZHEN_DESIGN_V1
 						pNode_t->arrNodeBuffer[i].p_iID = (uint8_t *)malloc(sizeof(uint8_t));
 						pNode_t->arrNodeBuffer[i].p_bHome = (bool *)malloc(sizeof(bool));
-						pNode_t->arrNodeBuffer[i].p_iHomeDir = (uint8_t *)malloc(sizeof(uint8_t));
+						pNode_t->arrNodeBuffer[i].p_iHomeDir = (int8_t *)malloc(sizeof(int8_t));
 						pNode_t->arrNodeBuffer[i].p_fSpeed = (float *)malloc(sizeof(float));
 						pNode_t->arrNodeBuffer[i].p_fTargetPos = (float *)malloc(sizeof(float));
 						if(NULL == pNode_t->arrNodeBuffer[i].p_iID || 
@@ -184,6 +184,8 @@ bool RegisterMotorVar(PRIVATE_MEMBER_TYPE *pThisPrivate, MotorControl *MotorVar)
 		MotorVar->m_pThisPrivate = pPrivate_t;
 		
 		DEBUG_LOG("\r\nDBG end register motor to Int")
+		
+		return true;
 }
 
 bool LimitTouch(LimitsNode *LimitNode, LimitFunction eLimit)
@@ -297,6 +299,8 @@ static bool AddMotor(PRIVATE_MEMBER_TYPE *pThisPrivate, MotorParams *pParams_t)
 				pNode->pNext_t = pList;
 				DEBUG_LOG("\r\nAdd a motor")
 		}		
+		
+		return true;
 }
 
 void MotorIntHandler(PRIVATE_MEMBER_TYPE *pPrivate, TIM_HandleTypeDef *hTIM)
@@ -357,14 +361,13 @@ void MotorIntHandler(PRIVATE_MEMBER_TYPE *pPrivate, TIM_HandleTypeDef *hTIM)
 					}
 										
 					if(!Motor_t->bFindZeroLimit && Motor_t->m_pTargetArrived(pIncEncoder_t->m_pThisPrivate))
-//					if(0)
 					{
 							pStepper_t->m_pStepperStop(pStepper_t->m_pThisPrivate);
 					}
 					else
 					{
 							pIncEncoder_t->m_pGetEncoderRelativeValueAbs(pIncEncoder_t->m_pThisPrivate, &iRelativeValue);
-							SetTIM_OC(pStepper_t->m_pThisPrivate, hTIM, iRelativeValue);
+							pStepper_t->m_pSetTIM_OC(pStepper_t->m_pThisPrivate, hTIM, iRelativeValue);
 					}					
 					break;
 				default:
@@ -448,7 +451,7 @@ void MotorHome(MoveNodeList *pNode, uint8_t *iMotorID, uint32_t *iSpeed)
 		#if HARDWARE_VERSION == CHENGDU_DESIGN || HARDWARE_VERSION == SHENZHEN_DESIGN_V1
 					bool bHome = true;
 					bool bStop = false;
-					uint8_t iHomeDir = NEGTIVE_DIRECTION;
+					int8_t iHomeDir = NEGTIVE_DIRECTION;
 					float fSpeed = (float)(*iSpeed);
 		#endif
 		Params_t.bBusy = false;
@@ -470,7 +473,7 @@ bool SetMoveParams(PRIVATE_MEMBER_TYPE *pThisPrivate, uint8_t *iMotorID, float *
 		#if HARDWARE_VERSION == CHENGDU_DESIGN || HARDWARE_VERSION == SHENZHEN_DESIGN_V1
 					bool bHome = false;
 					bool bStop = false;
-					uint8_t iHomeDir = NEGTIVE_DIRECTION;
+					int8_t iHomeDir = NEGTIVE_DIRECTION;
 					float fSpeed = (float)(*fMoveSpeed);
 		#endif
 	
@@ -488,6 +491,8 @@ bool SetMoveParams(PRIVATE_MEMBER_TYPE *pThisPrivate, uint8_t *iMotorID, float *
 		Params_t.p_iID = iMotorID;
 		
 		PushMoveData(pPrivate->pMoveNodeList, &Params_t);
+		
+		return true;
 }
 
 static bool MotorHomeImmediately(PRIVATE_MEMBER_TYPE *pThisPrivate, uint8_t iMotorID, uint32_t iSpeed)

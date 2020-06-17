@@ -228,6 +228,7 @@ void HAL_CAN_RxCpltCallback (CAN_HandleTypeDef *hcan)
 	
 	/* 比较ID */
 //	if (RxMessage.StdId == (*(uint32_t*)g_Communication_t.m_pGetInterfaceConfig(g_Communication_t.m_pThisPrivate, ))
+	DEBUG_LOG("\r\nCAN1 data")
 	if (hcan->pRxMsg->StdId == DriverBoardInfo.iDriverID)
 	{
 //		for (i = 0; i < 8; i++)
