@@ -321,9 +321,11 @@ void CommandFromHostHandler(const uint8_t *pRawData, const uint8_t iDataLen)
 			case HOME:
 				DEBUG_LOG("\r\nDBG CMD Home")
 				#if HARDWARE_VERSION == CHENGDU_DESIGN || HARDWARE_VERSION == SHENZHEN_DESIGN_V1
-						if(2 == pRawData[1])
+						//if(2 == pRawData[1])
+						if(1)
 						{
-								g_MotionBlock_t.m_pHomeAxisImmediately(g_MotionBlock_t.m_pThisPrivate, 0, ((uint32_t)pRawData[2] << 8 | pRawData[3]));
+								//g_MotionBlock_t.m_pHomeAxisImmediately(g_MotionBlock_t.m_pThisPrivate, 0, ((uint32_t)pRawData[2] << 8 | pRawData[3]));
+							g_MotionBlock_t.m_pHomeAxisImmediately(g_MotionBlock_t.m_pThisPrivate, 0, ((uint32_t)pRawData[3] << 8 | pRawData[2]));
 						}
 				#endif
 				break;
