@@ -309,7 +309,7 @@ void MotorIntHandler(PRIVATE_MEMBER_TYPE *pPrivate, TIM_HandleTypeDef *hTIM)
 		MotorList *Motor_t = pPrivate_t->pMotorList;
 		StepperControl *pStepper_t = NULL;
 		IncEncoderControl *pIncEncoder_t = NULL;
-		uint32_t iRelativeValue;
+		static uint32_t iRelativeValue = 0;
 	
 		if(NULL == pPrivate_t)
 		{
@@ -452,7 +452,7 @@ void MotorHome(MoveNodeList *pNode, uint8_t *iMotorID, uint32_t *iSpeed)
 					bool bHome = true;
 					bool bStop = false;
 					int8_t iHomeDir = NEGTIVE_DIRECTION;
-					float fSpeed = (float)(*iSpeed);
+					float fSpeed = (float)(*iSpeed) / 10;
 		#endif
 		Params_t.bBusy = false;
 		Params_t.bDistanceArrived = false;
@@ -465,7 +465,7 @@ void MotorHome(MoveNodeList *pNode, uint8_t *iMotorID, uint32_t *iSpeed)
 		PushMoveData(pNode, &Params_t);
 }
 
-bool SetMoveParams(PRIVATE_MEMBER_TYPE *pThisPrivate, uint8_t *iMotorID, float *fDist, float *fMoveSpeed)
+bool SetMoveParams(PRIVATE_MEMBER_TYPE *pThisPrivate, uint8_t *iMotorID, float *fMoveDist, float *fMoveSpeed)
 {
 		MoveNodeParams Params_t;
 		PrivateBlock *pPrivate = (PrivateBlock *)pThisPrivate;
@@ -474,7 +474,8 @@ bool SetMoveParams(PRIVATE_MEMBER_TYPE *pThisPrivate, uint8_t *iMotorID, float *
 					bool bHome = false;
 					bool bStop = false;
 					int8_t iHomeDir = NEGTIVE_DIRECTION;
-					float fSpeed = (float)(*fMoveSpeed);
+//					float fSpeed = (float)(*fMoveSpeed);
+//					float fDist = (float)(*fMoveDist);
 		#endif
 	
 		if(NULL == pPrivate)
@@ -486,7 +487,7 @@ bool SetMoveParams(PRIVATE_MEMBER_TYPE *pThisPrivate, uint8_t *iMotorID, float *
 		Params_t.bBusy = false;
 		Params_t.bDistanceArrived = false;
 		Params_t.p_bHome = false;
-		Params_t.p_fTargetPos = fDist;
+		Params_t.p_fTargetPos = fMoveDist;
 		Params_t.p_fSpeed = fMoveSpeed;
 		Params_t.p_iID = iMotorID;
 		
@@ -735,7 +736,7 @@ bool GetLinearLocation(PRIVATE_MEMBER_TYPE *pThisPrivate, uint8_t *iMotorID, flo
 		pEncoder = pNode->pEncoder_t;
 		
 		pEncoder->m_pGetEncoderLinearValue(pEncoder->m_pThisPrivate, fPos);
-		DEBUG_LOG("\r\nDBG encoder pos:%f", *fPos)
+		DEBUG_LOG("\r\nDBG encoder pos mm:%f", *fPos)
 		
 		return true;		
 }
@@ -812,7 +813,7 @@ bool SetDirPinHighAsForward(PRIVATE_MEMBER_TYPE *pThisPrivate, uint8_t iMotorID,
 					pStepper_t = pNode->pMotor_t;
 					pIncEncoder_t = pNode->pEncoder_t;
 					pStepper_t->m_pSetStepperDirHighAsForward(pStepper_t->m_pThisPrivate, bValue);
-					pIncEncoder_t->m_pReverseCountDir(pIncEncoder_t->m_pThisPrivate, bValue);
+					pIncEncoder_t->m_pReverseCountDir(pIncEncoder_t->m_pThisPrivate, !bValue);
 				default:
 					break;
 		}		
@@ -953,7 +954,7 @@ static void ExeMotorControl(PRIVATE_MEMBER_TYPE *pPrivate, CmdDataObj *eCmdType)
 												pMotorNode->bFindZeroLimit = false;
 												Stepper_t->m_pStepperForward(Stepper_t->m_pThisPrivate);
 												IncEncoder_t->m_pSetEncoderTarget(IncEncoder_t->m_pThisPrivate, 10);
-												Stepper_t->m_pStepperPrepare(Stepper_t->m_pThisPrivate, 10, 3);
+												Stepper_t->m_pStepperPrepare(Stepper_t->m_pThisPrivate, 10, 5);
 												eHomeStep = eWAIT_REVERSE_ARRIVED;
 												//break;
 											case eWAIT_REVERSE_ARRIVED:
@@ -1061,7 +1062,7 @@ static void ExeMotorControl(PRIVATE_MEMBER_TYPE *pPrivate, CmdDataObj *eCmdType)
 													if(IncEncoder_t->m_pIncEncoderTargetArrived(IncEncoder_t->m_pThisPrivate))
 													{
 															DEBUG_LOG("\r\nDBG target arrived")
-															IncEncoder_t->m_pSetEncoderValuef(IncEncoder_t->m_pThisPrivate, *Params_t.p_fTargetPos);
+															//IncEncoder_t->m_pSetEncoderValuef(IncEncoder_t->m_pThisPrivate, *Params_t.p_fTargetPos);
 															eMoveStep = eARRIVE;
 													}
 													else

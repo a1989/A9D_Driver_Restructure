@@ -8,6 +8,11 @@
 
 #define ACC_TIME_DIVISION	20
 #define DEC_TIME_DIVISION	20
+#define ACC_TIME	0.4
+#define DEC_TIME	0.4
+
+uint32_t iDebug0 = 0;
+uint32_t iDebug1 = 0;
 
 //标准速度参考表, 速度为10000个脉冲每秒, 0.4秒加速, 两个抛物线组成的S形
 //转速,距离
@@ -52,7 +57,7 @@ typedef struct
 		uint16_t arrAccDivisionTable[ACC_TIME_DIVISION][2];
 		uint16_t arrDecDivisionTable[DEC_TIME_DIVISION][2];
 		void *pDriver;
-		bool bPlateauAll;
+		
 		uint32_t iAccDist;
 		uint32_t iPlatDist;
 		uint32_t iDecDist;
@@ -64,6 +69,9 @@ typedef struct
 		bool bDecAddIndex;
 		uint32_t iDecTableIndex;
 		uint32_t iDecAccumulation;
+		
+		bool bPlateauAll;
+		int16_t iPlatValueOC;
 }PrivateBlock;
 
 void StepperStop(PRIVATE_MEMBER_TYPE *pPrivate)
@@ -97,7 +105,7 @@ void StopStepperModerate(PrivateBlock *pPrivate)
 void SetTIM_OC(PRIVATE_MEMBER_TYPE *pThisPrivate, TIM_HandleTypeDef *hTIM, uint32_t iPos)
 {
 		uint16_t iCount; 
-		uint16_t iToggleParam = 50;
+		static uint16_t iToggleParam = 50;
 		PrivateBlock *pPrivate = (PrivateBlock *)pThisPrivate;
 
 		
@@ -112,16 +120,20 @@ void SetTIM_OC(PRIVATE_MEMBER_TYPE *pThisPrivate, TIM_HandleTypeDef *hTIM, uint3
 		iCount = __HAL_TIM_GET_COUNTER (hTIM);
 		
 		//如果是全程匀速的情况
-		if(0)
+		if(pPrivate->bPlateauAll)
 		{
-				
+				iToggleParam = pPrivate->iPlatValueOC;
 		}
 		else
 		{
+				iDebug1 = iPos;
+				iDebug0 = 4;
+//				DEBUG_LOG("\r\nDBG pos %d", iPos)
 				//加减速情况
 				//当前处于加速段
 				if(iPos < pPrivate->iAccDist)
 				{
+						iDebug0 = 1;
 						if(pPrivate->bAccAddIndex)
 						{
 								//累加一段距离
@@ -137,16 +149,18 @@ void SetTIM_OC(PRIVATE_MEMBER_TYPE *pThisPrivate, TIM_HandleTypeDef *hTIM, uint3
 								}
 								pPrivate->bAccAddIndex = true;
 						}
-						
+												
 						iToggleParam = pPrivate->arrAccDivisionTable[pPrivate->iAccTableIndex][0];
 				}
 				//匀速段
-				else if(iPos >= pPrivate->iAccDist && iPos < pPrivate->iDecDist)
+				else if(iPos >= pPrivate->iAccDist && iPos < pPrivate->iDecAccumulation)
 				{
+						iDebug0 = 2;
 				}
 				//减速段
 				else
 				{
+						iDebug0 = 3;
 						if(pPrivate->bDecAddIndex)
 						{
 								//累加一段距离
@@ -167,6 +181,7 @@ void SetTIM_OC(PRIVATE_MEMBER_TYPE *pThisPrivate, TIM_HandleTypeDef *hTIM, uint3
 				}
 		}
 		
+//		DEBUG_LOG("\r\nDBG toggle %d", iToggleParam)
 		if(iToggleParam < 35)
 		{
 				iToggleParam = 35;
@@ -203,19 +218,23 @@ static void CalcCurveForBlockLinear(PrivateBlock *pPrivate, uint32_t iDistance, 
 				return;
 		}	
 		
+		DEBUG_LOG("\r\nDBG idist %d", iDistance)
+		DEBUG_LOG("\r\nDBG ispd %d", iSpeed)
+		
 		pPrivate_t->bAccAddIndex = true;
 		pPrivate_t->iAccTableIndex = 0;
 		pPrivate_t->iAccAccumulation = 0;
 		pPrivate_t->bDecAddIndex = true;
 		pPrivate_t->iDecTableIndex = 0;
 		pPrivate_t->iDecAccumulation = 0;
-		
+		pPrivate->bPlateauAll = false;
 		iStartSpeed = pPrivate_t->iNominalStartSpeed;
 		iEndSpeed = pPrivate_t->iNominalEndSpeed;
 		
 		//抛物线查表法
 		fTimeTickAcc = pPrivate_t->fAccTime / ACC_TIME_DIVISION;
-
+		fTimeTickDec = pPrivate_t->fDecTime / DEC_TIME_DIVISION;
+		
 		if(iSpeed < min(iStartSpeed, iEndSpeed))
 		{
 				//如果比起始速度和收尾速度都小,则以两个速度中较小的值匀速运动
@@ -232,12 +251,18 @@ static void CalcCurveForBlockLinear(PrivateBlock *pPrivate, uint32_t iDistance, 
 		else if(iSpeed > iStartSpeed && iSpeed > iEndSpeed)
 		{								
 				//先以梯形为参考,一半加速时间时,Vm为给定速度一半且Vm - V0 = a*Tm, a = (Vm - V0) / Tm
-				fAccAvg = (float)(iSpeed - iStartSpeed) / pPrivate_t->fAccTime;
-				fDecAvg = (float)(iEndSpeed - iSpeed) / pPrivate_t->fDecTime;
+				fAccAvg = (float)((int32_t)iSpeed - (int32_t)iStartSpeed) / pPrivate_t->fAccTime;
+				fDecAvg = (float)((int32_t)iEndSpeed - (int32_t)iSpeed) / pPrivate_t->fDecTime;
 				//计算加速段距离	(Vt ^ 2 - V0 ^ 2) / 2a = S, V0 = 0;
 				fAccDist = (float)( pow(iSpeed, 2) - pow(iStartSpeed, 2) ) / (2 * fAccAvg);
 				
 				//计算减速段距离
+//				DEBUG_LOG("\r\nDBG iStartSpeed %d", iStartSpeed)
+//				DEBUG_LOG("\r\nDBG iEndSpeed %d", iEndSpeed)
+//				DEBUG_LOG("\r\nDBG atime %f", pPrivate_t->fAccTime)
+//				DEBUG_LOG("\r\nDBG dtime %f", pPrivate_t->fDecTime)
+//				DEBUG_LOG("\r\nDBG faavg %f", fAccAvg)
+//				DEBUG_LOG("\r\nDBG fdavg %f", fDecAvg)
 				fDecDist = (float)( pow(iEndSpeed, 2) - pow(iSpeed, 2)) / (2 * fDecAvg);
 				
 				//最大速度就是给定速度
@@ -284,23 +309,29 @@ static void CalcCurveForBlockLinear(PrivateBlock *pPrivate, uint32_t iDistance, 
 						{
 								pPrivate_t->arrAccDivisionTable[i][0] = (uint16_t)((float)2000000 / ((fZoomFactorAcc * (float)arrSpeedTable[i][0] * fCurveMultipleAcc + iStartSpeed) * 2));
 								pPrivate_t->arrAccDivisionTable[i][1] = (uint16_t)((float)arrSpeedTable[i][0] * fTimeTickAcc);
-								pPrivate_t->arrAccDivisionTable[i][0] = (uint16_t) ((float)pPrivate_t->arrAccDivisionTable[i][0]);
-//								printf("\r\n%d,%d", pPrivate_t->arrAccDivisionTable[i][0], pPrivate_t->arrAccDivisionTable[i][1]);
+								pPrivate_t->arrAccDivisionTable[i][0] = (uint16_t) ((float)pPrivate_t->arrAccDivisionTable[i][0] / 2);
+								printf("\r\n%d,%d", pPrivate_t->arrAccDivisionTable[i][0], pPrivate_t->arrAccDivisionTable[i][1]);
 						}
 						
 						fCurveMultipleDec = (float)(fMaxSpeed - iEndSpeed) / 10000;
+						DEBUG_LOG("\r\n---")
+						
 						for(i = 0; i < DEC_TIME_DIVISION; i++)
 						{
 								pPrivate_t->arrDecDivisionTable[DEC_TIME_DIVISION - i - 1][0] = (uint16_t)((float)2000000 / ((fZoomFactorDec * (float)arrSpeedTable[i][0] * fCurveMultipleDec + iEndSpeed) * 2));
 								pPrivate_t->arrDecDivisionTable[DEC_TIME_DIVISION - i - 1][1] = (uint16_t)((float)arrSpeedTable[i][0] * fTimeTickDec);
-								pPrivate_t->arrDecDivisionTable[DEC_TIME_DIVISION - i - 1][0] = (uint16_t) ((float)pPrivate_t->arrDecDivisionTable[DEC_TIME_DIVISION - i - 1][0]);
-//								printf("\r\n%d,%d", pPrivate_t->arrDecDivisionTable[ACC_TIME_DIVISION - i - 1][0], structParams->arrDecDivisionTable[ACC_TIME_DIVISION - i - 1][1]);
+								pPrivate_t->arrDecDivisionTable[DEC_TIME_DIVISION - i - 1][0] = (uint16_t) ((float)pPrivate_t->arrDecDivisionTable[DEC_TIME_DIVISION - i - 1][0] / 2);
+								printf("\r\n%d,%d", pPrivate_t->arrDecDivisionTable[DEC_TIME_DIVISION - i - 1][0], pPrivate_t->arrDecDivisionTable[DEC_TIME_DIVISION - i - 1][1]);
 						}
 						
 						pPrivate_t->iAccDist = fAccDist;
 						pPrivate_t->iDecDist = fDecDist;
 						pPrivate_t->iPlatDist = fPlateauDist;
 						pPrivate_t->iDecAccumulation = pPrivate_t->iAccDist + pPrivate_t->iPlatDist;
+						
+						DEBUG_LOG("\r\nDBG iaccdist %d", pPrivate_t->iAccDist)
+						DEBUG_LOG("\r\nDBG idecdist %d", pPrivate_t->iDecDist)
+						DEBUG_LOG("\r\nDBG iplatdist %d", pPrivate_t->iPlatDist)
 				}
 				//至此S曲线段参数已全部确定					
 		}
@@ -313,13 +344,14 @@ static void CalcCurveForBlockLinear(PrivateBlock *pPrivate, uint32_t iDistance, 
 		if(bPlateauAll)
 		{
 				pPrivate_t->bPlateauAll = bPlateauAll;
-				for(i = 0; i < ACC_TIME_DIVISION; i++)
-				{
-						pPrivate_t->arrAccDivisionTable[i][0] = (uint16_t)((float)2000000 / ((fZoomFactorAcc * (float)arrSpeedTable[i][0] * fCurveMultipleAcc + iStartSpeed) * 2));
-						pPrivate_t->arrAccDivisionTable[i][1] = (uint16_t)((float)arrSpeedTable[i][0] * fTimeTickAcc);
-						pPrivate_t->arrAccDivisionTable[i][0] = (uint16_t) ((float)pPrivate_t->arrAccDivisionTable[i][0]);
-						printf("\r\n%d,%d", pPrivate_t->arrAccDivisionTable[i][0], pPrivate_t->arrAccDivisionTable[i][1]);
-				}				
+//				for(i = 0; i < ACC_TIME_DIVISION; i++)
+//				{
+//						pPrivate_t->arrAccDivisionTable[i][0] = (uint16_t)((float)2000000 / ((fZoomFactorAcc * (float)arrSpeedTable[i][0] * fCurveMultipleAcc + iStartSpeed) * 2));
+//						pPrivate_t->arrAccDivisionTable[i][1] = (uint16_t)((float)arrSpeedTable[i][0] * fTimeTickAcc);
+//						pPrivate_t->arrAccDivisionTable[i][0] = (uint16_t) ((float)pPrivate_t->arrAccDivisionTable[i][0]);
+//						printf("\r\n%d,%d", pPrivate_t->arrAccDivisionTable[i][0], pPrivate_t->arrAccDivisionTable[i][1]);
+//				}			
+				pPrivate_t->iPlatValueOC = (uint16_t)((float)2000000 / (fMaxSpeed) / 2);
 		}
 }
 
@@ -409,6 +441,12 @@ bool StepperPrepare(PRIVATE_MEMBER_TYPE *pThisPrivate, float fDistance, float fS
 		}			
 		
 		DEBUG_LOG("\r\nStepper Prepare")
+		DEBUG_LOG("\r\nDBG fdist %f", fDistance)
+		DEBUG_LOG("\r\nDBG fspd %f", fSpeed)
+		
+		DEBUG_LOG("\r\nDBG fpithch %f", pPrivate->StepperParams_t.fPitch)
+		DEBUG_LOG("\r\nDBG isubdivision %d", pPrivate->StepperParams_t.iSubdivisionCfg)
+		DEBUG_LOG("\r\nDBG iratio %f", pPrivate->StepperParams_t.fFeedBackRatio)
 		
 		//计算脉冲距离
 		iPulseDist = fabs((fDistance / pPrivate->StepperParams_t.fPitch) * pPrivate->StepperParams_t.iSubdivisionCfg * 200
@@ -420,10 +458,10 @@ bool StepperPrepare(PRIVATE_MEMBER_TYPE *pThisPrivate, float fDistance, float fS
 		
 		//计算起始和收尾脉冲速度
 		pPrivate->iNominalStartSpeed = (float)MOTOR_START_SPEED * pPrivate->StepperParams_t.fFeedBackRatio;
-		pPrivate->iNominalStartSpeed = (float)MOTOR_END_SPEED * pPrivate->StepperParams_t.fFeedBackRatio;
+		pPrivate->iNominalEndSpeed = (float)MOTOR_END_SPEED * pPrivate->StepperParams_t.fFeedBackRatio;
 		
 		DEBUG_LOG("\r\nStart calc curve")
-//		CalcCurveForBlockLinear(pThisPrivate, iPulseDist, iPulseSpeed);
+		CalcCurveForBlockLinear(pThisPrivate, iPulseDist, iPulseSpeed);
 			
 		//HAL_TIM_OC_Start_IT (&pPrivate->hTIM, TIM_CHANNEL_1);
 		HAL_TIM_OC_Start_IT (&htim2, TIM_CHANNEL_1);
@@ -488,7 +526,10 @@ void StepperControlInit(StepperControl *pStepper_t, StepperParams *pParams_t)
 					break;
 		}
 		
+		memcpy(&pPrivate->StepperParams_t, pParams_t, sizeof(StepperParams));
 		pPrivate->StepperParams_t.eDriver = pParams_t->eDriver;
+		pPrivate->fAccTime = ACC_TIME;
+		pPrivate->fDecTime = DEC_TIME;
 		
 		switch(pParams_t->eMotorTIM)
 		{

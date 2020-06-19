@@ -70,7 +70,8 @@ static void MX_NVIC_Init(void);
 /* USER CODE BEGIN 0 */
 
 /* USER CODE END 0 */
-
+extern uint32_t iDebug0;
+extern uint32_t iDebug1;
 /**
   * @brief  The application entry point.
   * @retval int
@@ -123,10 +124,9 @@ int main(void)
   uint32_t i = 0;
 	while (1)
 	{
-              if(i > 10000)
+              if(i > 30000)
               {	
-//                  printf("\r\n %f,%d,%f", Dis_Target, Location_Cnt, Vel_Exp_Val);
-//                  printf("\r\n %d", Toggle_Pulse);
+//                 printf("\r\n %d,%d", iDebug0, iDebug1);
                   i = 0;
               }
               else
@@ -206,7 +206,7 @@ static void MX_NVIC_Init(void)
   HAL_NVIC_SetPriority(TIM3_IRQn, 5, 0);
   HAL_NVIC_EnableIRQ(TIM3_IRQn);
   /* TIM4_IRQn interrupt configuration */
-  HAL_NVIC_SetPriority(TIM4_IRQn, 2, 0);
+  HAL_NVIC_SetPriority(TIM4_IRQn, 0, 1);
   HAL_NVIC_EnableIRQ(TIM4_IRQn);
   /* DMA1_Channel4_IRQn interrupt configuration */
   HAL_NVIC_SetPriority(DMA1_Channel4_IRQn, 5, 0);

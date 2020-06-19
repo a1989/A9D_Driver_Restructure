@@ -58,7 +58,9 @@ bool SetEncoderValuef(PRIVATE_MEMBER_TYPE *m_pThisPrivate, float fValue)
 		
 		__HAL_TIM_SET_COUNTER(&htim3, pPrivate_t->iCurrentCount % 0xFFFF);
 		
+//		pPrivate_t->iRelativeDistStart = pPrivate_t->iCurrentCount;
 		DEBUG_LOG("\r\nDBG set encoder pos %f", fValue)
+		DEBUG_LOG("\r\nDBG set cur cnt %d", pPrivate_t->iCurrentCount)
 		
 		return true;
 }
@@ -81,6 +83,7 @@ void FreshEncoderCount(PRIVATE_MEMBER_TYPE *m_pThisPrivate)
 				pPrivate_t->iCurrentCount = -pPrivate_t->iPeriodCount * 0xFFFF - __HAL_TIM_GET_COUNTER (&htim3);
 		}
 		
+//		DEBUG_LOG("\r\nDBG icnt %d,ircnt %d,it3 %d", pPrivate_t->iCurrentCount, pPrivate_t->iPeriodCount, __HAL_TIM_GET_COUNTER (&htim3))
 		pPrivate_t->iRelativeDist = pPrivate_t->iCurrentCount - pPrivate_t->iRelativeDistStart;
 }
 
@@ -110,6 +113,7 @@ bool GetEncoderLinearValue(PRIVATE_MEMBER_TYPE *m_pThisPrivate, float *fValue)
 		
 //		pPrivate_t->iCurrentCount = pPrivate_t->iPeriodCount * 0xFFFF + __HAL_TIM_GET_COUNTER (&htim3);
 		FreshEncoderCount(m_pThisPrivate);
+		DEBUG_LOG("\r\nDBG get encoder pos %d", pPrivate_t->iCurrentCount)
 		*fValue = (float)pPrivate_t->iCurrentCount / pPrivate_t->iCountPerRound * pPrivate_t->fPitch;		
 		
 		return true;
@@ -206,12 +210,15 @@ void IncEncoderIntHandler(PRIVATE_MEMBER_TYPE *m_pThisPrivate, TIM_HandleTypeDef
 		
 		if(htim->Instance == htim3.Instance)
 		{
+				//DIR位为0时向上计数
 				if (htim3.Instance->CR1 & 0x0010) 
 				{
+						//DEBUG_LOG("\r\nDBG cr1-")
 						pPrivate_t->iPeriodCount -= 1;
 				}
 				else
 				{
+						//DEBUG_LOG("\r\nDBG cr1+")
 						pPrivate_t->iPeriodCount += 1;
 				}				
 		}
@@ -307,6 +314,12 @@ void IncEncoderControlInit(IncEncoderControl *Block_t, EncoderParmas *Params_t)
 		pPrivate_t->iCurrentCount = 0;
 		pPrivate_t->fPitch = 10;
 		
+		pPrivate_t->iRelativeDistStart = 0;
+		pPrivate_t->iRelativeDist = 0;
+		pPrivate_t->iPeriodCount = 0;
+		pPrivate_t->iCountDelta = 0;
+		pPrivate_t->iTargetCount = 0;
+		
 		Block_t->m_pGetEncoderLinearValue = GetEncoderLinearValue;
 		Block_t->m_pIncEncoderTargetArrived = IncEncoderTargetArrived;
 		Block_t->m_pThisPrivate = pPrivate_t;
@@ -317,14 +330,13 @@ void IncEncoderControlInit(IncEncoderControl *Block_t, EncoderParmas *Params_t)
 		Block_t->m_pGetEncoderRelativeValueAbs = GetEncoderRelativeValueAbs;
 		
 		RegisterEncoderVar(pPrivate_t);
-		
+//		__HAL_TIM_SET_COUNTER (&htim3, 0);
 		__HAL_TIM_CLEAR_IT (&htim3, TIM_IT_UPDATE);
-		if (HAL_TIM_Base_Start_IT (&htim3) != HAL_OK)
-		{
-				Error_Handler();
-		}
-		
+		 __HAL_TIM_ENABLE_IT(&htim3,TIM_IT_UPDATE); 
 		TIM3_Encoder_Switch (1);//开编码器
+		
+		HAL_TIM_Encoder_Start_IT(&htim3,TIM_CHANNEL_ALL);
+		
 		DEBUG_LOG("\r\nDBG inc encoder init success")
 }
 

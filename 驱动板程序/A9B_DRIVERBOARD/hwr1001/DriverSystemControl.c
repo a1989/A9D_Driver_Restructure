@@ -122,22 +122,8 @@ static void DataStructureInit(void)
 				StepperSysParams_t.EncoderParmas_t.iMultiplication = ENCODER_MULTIPLY;		//编码器4倍频
 				StepperSysParams_t.StepperParams_t.fFeedBackRatio = (float)(ENCODER_LINES * ENCODER_MULTIPLY) / (StepperSysParams_t.StepperParams_t.iSubdivisionCfg * 200);
 				
-				MotorParams_t.pMotorSysParams = &StepperSysParams_t;
-				//新增一个电机
-				g_MotionBlock_t.m_pAddMotor(g_MotionBlock_t.m_pThisPrivate, &MotorParams_t);
-				//为当前电机添加零点限位开关
-				LimitParams_t.eFunc = eZero;
-				LimitParams_t.GPIO_Port = GPIOB;
-				LimitParams_t.GPIO_Pin = GPIO_PIN_9;
-				LimitParams_t.iMotorBelong = 0;
-				g_MotionBlock_t.m_pAddMotorLimit(g_MotionBlock_t.m_pThisPrivate, &LimitParams_t);
 				
-				//为当前电机添加正向限位开关
-				LimitParams_t.eFunc = ePositive;
-				LimitParams_t.GPIO_Port = GPIOB;
-				LimitParams_t.GPIO_Pin = GPIO_PIN_8;
-				LimitParams_t.iMotorBelong = 0;
-				g_MotionBlock_t.m_pAddMotorLimit(g_MotionBlock_t.m_pThisPrivate, &LimitParams_t);
+
 				
 				MX_TIM4_Init();
 				TIM4_IT_Interrupt_Switch (1);
@@ -167,16 +153,40 @@ static void DataStructureInit(void)
 		
 		#if HARDWARE_VERSION == CHENGDU_DESIGN
 				if(0xB1 == iStdId || 0xA2 == iStdId)
-//				if(0)
 				{
 						bPinHighAsForward = false;
-						g_MotionBlock_t.m_pSetMotorDirPinHighAsForward(g_MotionBlock_t.m_pThisPrivate, &iMotorID, &bPinHighAsForward);
+//						g_MotionBlock_t.m_pSetMotorDirPinHighAsForward(g_MotionBlock_t.m_pThisPrivate, &iMotorID, &bPinHighAsForward);
+						
 				}
 				else
 				{
 						bPinHighAsForward = true;
-						g_MotionBlock_t.m_pSetMotorDirPinHighAsForward(g_MotionBlock_t.m_pThisPrivate, &iMotorID, &bPinHighAsForward);
+//						g_MotionBlock_t.m_pSetMotorDirPinHighAsForward(g_MotionBlock_t.m_pThisPrivate, &iMotorID, &bPinHighAsForward);
 				}
+				
+				StepperSysParams_t.StepperParams_t.fPitch = 10;
+				
+				if(0xA3 == iStdId || 0xB3 == iStdId)
+				{
+						StepperSysParams_t.StepperParams_t.fPitch = 5;
+				}
+				
+				MotorParams_t.pMotorSysParams = &StepperSysParams_t;
+				//新增一个电机
+				g_MotionBlock_t.m_pAddMotor(g_MotionBlock_t.m_pThisPrivate, &MotorParams_t);
+				//为当前电机添加零点限位开关
+				LimitParams_t.eFunc = eZero;
+				LimitParams_t.GPIO_Port = GPIOB;
+				LimitParams_t.GPIO_Pin = GPIO_PIN_9;
+				LimitParams_t.iMotorBelong = 0;
+				g_MotionBlock_t.m_pAddMotorLimit(g_MotionBlock_t.m_pThisPrivate, &LimitParams_t);
+				g_MotionBlock_t.m_pSetMotorDirPinHighAsForward(g_MotionBlock_t.m_pThisPrivate, &iMotorID, &bPinHighAsForward);
+				//为当前电机添加正向限位开关
+				LimitParams_t.eFunc = ePositive;
+				LimitParams_t.GPIO_Port = GPIOB;
+				LimitParams_t.GPIO_Pin = GPIO_PIN_8;
+				LimitParams_t.iMotorBelong = 0;
+				g_MotionBlock_t.m_pAddMotorLimit(g_MotionBlock_t.m_pThisPrivate, &LimitParams_t);
 		#elif HARDWARE_VERSION == SHENZHEN_DESIGN_V1
 		#endif
 }

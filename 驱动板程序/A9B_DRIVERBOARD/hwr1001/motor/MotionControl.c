@@ -13,27 +13,6 @@ typedef struct
 		char *strType;
 }PrivateBlock;
 
-//分布式控制时, 根据板ID确定当前控制的是哪个轴
-static void SetAxisIndex(const uint8_t iBoardID, AxisEnum *iAxisIndex)
-{
-		if(0xA1 == iBoardID || 0xB1 == iBoardID)
-		{
-				*iAxisIndex = X_AXIS;
-		}
-		else if(0xA2 == iBoardID || 0xB2 == iBoardID)
-		{
-				*iAxisIndex = Y_AXIS;
-		}
-		else if(0xA3 == iBoardID || 0xB3 == iBoardID)
-		{
-				*iAxisIndex = Z_AXIS;
-		}
-		else
-		{
-				*iAxisIndex = UNKNOWN_AXIS;
-		}
-}
-
 void StopMotorImmediately(PRIVATE_MEMBER_TYPE *pThisPrivate)
 {
 		
@@ -142,25 +121,6 @@ bool ReadMotorLimit(PRIVATE_MEMBER_TYPE *pThisPrivate, uint8_t iMotorID, LimitFu
 //		MoveControl_t->m_pHomeAxis(MoveControl_t->m_pThis, Params_t);
 //}
 
-void ProcessBlockData()
-{
-	
-}
-
-static void GetCoordinate(void)
-{
-	
-}
-
-static void PrepareMove(void)
-{
-	
-}
-
-
-
-
-
 void GetMoveData()
 {
 		uint8_t iMoveType;
@@ -172,8 +132,6 @@ void GetMoveData()
 		switch(iMoveType)
 		{
 				case 0:
-					GetCoordinate();
-					PrepareMove();
 					break;
 				case 1:
 					break;

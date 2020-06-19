@@ -17,7 +17,7 @@
 																				printf(strParams, ##__VA_ARGS__);\
 																		}
 		
-#define MAX_LENGTH	3000		//mm																		
+#define MAX_LENGTH	30000		//mm																		
 
 typedef struct
 {

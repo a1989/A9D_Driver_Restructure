@@ -4,7 +4,7 @@
 
 #define CTRL_REG_ADDR		0x00
 #define TORQUE_REG_ADDR		0x01
-#define OFF_REG_ADDR		0x02
+#define OFF_REG_ADDR			0x02
 #define BLANK_REG_ADDR		0x03
 #define DECAY_REG_ADDR		0x04
 #define STALL_REG_ADDR		0x05
@@ -228,7 +228,7 @@ bool EnableMotor(PrivateBlock *pPrivate)
 
 bool SetRegisterDefaultCTRL(PrivateBlock *pPrivate)
 {
-		pPrivate->CTRL_RegValue.structReg.ENBL = BIN_0;
+		pPrivate->CTRL_RegValue.structReg.ENBL = BIN_1;
 		pPrivate->CTRL_RegValue.structReg.RDIR = BIN_1;
 		pPrivate->CTRL_RegValue.structReg.RSTEP = BIN_0;
 		pPrivate->CTRL_RegValue.structReg.MODE = BIN_101;
@@ -245,12 +245,12 @@ bool SetRegisterDefaultCTRL(PrivateBlock *pPrivate)
 
 bool SetRegisterDefaultTORQUE(PrivateBlock *pPrivate)
 {
-		pPrivate->TORQUE_RegValue.structReg.TORQUE = 0x80;
+		pPrivate->TORQUE_RegValue.structReg.TORQUE = 0xFF;
 		pPrivate->TORQUE_RegValue.structReg.SIMPLTH = BIN_1;
 	
 		DEBUG_LOG("\r\nConfig TORQUE Reg:0x%x", pPrivate->TORQUE_RegValue.iRegValue)
 	
-		WriteSPI(&pPrivate->hSPI, &pPrivate->PinConfig_t, TORQUE_REG_ADDR, pPrivate->CTRL_RegValue.iRegValue);		
+		WriteSPI(&pPrivate->hSPI, &pPrivate->PinConfig_t, TORQUE_REG_ADDR, pPrivate->TORQUE_RegValue.iRegValue);		
 		
 		return true;
 }
@@ -258,11 +258,11 @@ bool SetRegisterDefaultTORQUE(PrivateBlock *pPrivate)
 bool SetRegisterDefaultOFF(PrivateBlock *pPrivate)
 {
 		pPrivate->OFF_RegValue.structReg.TOFF = 0x40;
-		pPrivate->OFF_RegValue.structReg.PWMMODE = BIN_1;
+		pPrivate->OFF_RegValue.structReg.PWMMODE = BIN_0;
 	
 		DEBUG_LOG("\r\nConfig OFF Reg:0x%x", pPrivate->OFF_RegValue.iRegValue)
 	
-		WriteSPI(&pPrivate->hSPI, &pPrivate->PinConfig_t, OFF_REG_ADDR, pPrivate->CTRL_RegValue.iRegValue);	
+		WriteSPI(&pPrivate->hSPI, &pPrivate->PinConfig_t, OFF_REG_ADDR, pPrivate->OFF_RegValue.iRegValue);	
 
 		return true;
 }
@@ -274,7 +274,7 @@ bool SetRegisterDefaultBLANK(PrivateBlock *pPrivate)
 	
 		DEBUG_LOG("\r\nConfig BLANK Reg:0x%x", pPrivate->BLANK_RegValue.iRegValue)
 	
-		WriteSPI(&pPrivate->hSPI, &pPrivate->PinConfig_t, BLANK_REG_ADDR, pPrivate->CTRL_RegValue.iRegValue);		
+		WriteSPI(&pPrivate->hSPI, &pPrivate->PinConfig_t, BLANK_REG_ADDR, pPrivate->BLANK_RegValue.iRegValue);		
 	
 		return true;
 }
@@ -286,7 +286,7 @@ bool SetRegisterDefaultDECAY(PrivateBlock *pPrivate)
 	
 		DEBUG_LOG("\r\nConfig DECAY Reg:0x%x", pPrivate->DECAY_RegValue.iRegValue)
 	
-		WriteSPI(&pPrivate->hSPI, &pPrivate->PinConfig_t, DECAY_REG_ADDR, pPrivate->CTRL_RegValue.iRegValue);		
+		WriteSPI(&pPrivate->hSPI, &pPrivate->PinConfig_t, DECAY_REG_ADDR, pPrivate->DECAY_RegValue.iRegValue);		
 	
 		return true;
 }
@@ -299,7 +299,7 @@ bool SetRegisterDefaultSTALL(PrivateBlock *pPrivate)
 	
 		DEBUG_LOG("\r\nConfig STALL Reg:0x%x", pPrivate->STALL_RegValue.iRegValue)
 	
-		WriteSPI(&pPrivate->hSPI, &pPrivate->PinConfig_t, STALL_REG_ADDR, pPrivate->CTRL_RegValue.iRegValue);		
+		WriteSPI(&pPrivate->hSPI, &pPrivate->PinConfig_t, STALL_REG_ADDR, pPrivate->STALL_RegValue.iRegValue);		
 	
 		return true;
 }
@@ -315,7 +315,7 @@ bool SetRegisterDefaultDRIVE(PrivateBlock *pPrivate)
 	
 		DEBUG_LOG("\r\nConfig DRIVE Reg:0x%x", pPrivate->DRIVE_RegValue.iRegValue)
 	
-		WriteSPI(&pPrivate->hSPI, &pPrivate->PinConfig_t, DRIVE_REG_ADDR, pPrivate->CTRL_RegValue.iRegValue);		
+		WriteSPI(&pPrivate->hSPI, &pPrivate->PinConfig_t, DRIVE_REG_ADDR, pPrivate->DRIVE_RegValue.iRegValue);		
 	
 		return true;
 }
@@ -392,7 +392,7 @@ bool DRV8711_SetSubdivision(PrivateBlock *pPrivate, uint8_t iCfg)
 bool DRV8711_SetTorque(PrivateBlock *pPrivate, uint8_t iCfg)
 {	
 		pPrivate->TORQUE_RegValue.structReg.TORQUE = iCfg;
-		WriteSPI(&pPrivate->hSPI, &pPrivate->PinConfig_t, TORQUE_REG_ADDR, pPrivate->CTRL_RegValue.iRegValue);
+		WriteSPI(&pPrivate->hSPI, &pPrivate->PinConfig_t, TORQUE_REG_ADDR, pPrivate->TORQUE_RegValue.iRegValue);
 		
     return true;		
 }
@@ -519,8 +519,10 @@ bool DRV8711_Init(DRV8711_Control *Block_t, DRV8711_Params *Params_t)
 		pPrivate->bHighLevelPositiveDir = false;
 		
 		DRV8711_Reset(&pPrivate->PinConfig_t);
+		Delay_ms(1);
 		DRV8711_SleepDisable(&pPrivate->PinConfig_t);
-			
+		Delay_ms(1);
+		
 		SetRegisterDefaultCTRL(pPrivate);
 		Delay_ms(1);
 		SetRegisterDefaultTORQUE(pPrivate);
@@ -541,9 +543,9 @@ bool DRV8711_Init(DRV8711_Control *Block_t, DRV8711_Params *Params_t)
 		Delay_ms(1);
 		DRV8711_SetSenseGain(pPrivate, 5);
 		Delay_ms(1);
-		DRV8711_SetTorque(pPrivate, 0);
+		DRV8711_SetTorque(pPrivate, 0x46);
 		
-//		DRV8711_SetTorque(pPrivate, Params_t->iCurrentCfg);
+		DRV8711_SetTorque(pPrivate, Params_t->iCurrentCfg);
 		DEBUG_LOG("\r\nDBG 8711 CurrentCfg val:%x", Params_t->iCurrentCfg);
 //		
 		EnableMotor(pPrivate);

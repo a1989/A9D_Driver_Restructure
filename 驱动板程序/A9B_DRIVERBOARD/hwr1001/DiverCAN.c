@@ -20,7 +20,7 @@ typedef struct
 CAN_Handler *CAN_MallocBlock(CAN_TypeDef *CAN_t, uint32_t iStdID)
 {
 		CAN_Handler *pCAN_Handler = (CAN_Handler*)malloc(sizeof(CAN_Handler));
-	
+
 		if(NULL == pCAN_Handler)
 		{
 				printf("\r\nFunc:%s,malloc Failed", __FUNCTION__);
@@ -125,7 +125,7 @@ void SendData(PRIVATE_MEMBER_TYPE *pThis, uint8_t *pData, uint8_t iLen)
 void DriverCAN_Init(CAN_Block *Block_t, CAN_TypeDef *CAN_t, uint32_t iStdID)
 {		
 		CAN_Handler *pHandler_t = NULL;
-	DEBUG_LOG("\r\n%d", iStdID)
+		DEBUG_LOG("\r\n%d", iStdID)
 		if(NULL == Block_t)
 		{
 				printf("\r\nFunc:%s,block NULL pointer", __FUNCTION__);
@@ -133,6 +133,11 @@ void DriverCAN_Init(CAN_Block *Block_t, CAN_TypeDef *CAN_t, uint32_t iStdID)
 		}
 		
 		Block_t->m_pThisPrivate = CAN_MallocBlock(CAN_t, iStdID);
+		if(NULL == Block_t)
+		{
+				printf("\r\nFunc:%s,CAN Block malloc failed", __FUNCTION__);
+				return;
+		}
 		pHandler_t = Block_t->m_pThisPrivate;
 		
 		if(NULL == Block_t->m_pThisPrivate)
