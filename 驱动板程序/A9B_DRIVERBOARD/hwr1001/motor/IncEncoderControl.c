@@ -34,6 +34,8 @@ bool SetEncoderTarget(PRIVATE_MEMBER_TYPE *m_pThisPrivate, float fTarget)
 		}				
 		DEBUG_LOG("\r\nDBG encoder target %f", fTarget)
 		fRound = fTarget / pPrivate_t->fPitch;
+		DEBUG_LOG("\r\nDBG pitch %f", pPrivate_t->fPitch)
+		DEBUG_LOG("\r\nDBG round %f", fRound)
 		pPrivate_t->iTargetCount = pPrivate_t->iCountPerRound * fRound;
 		DEBUG_LOG("\r\nDBG set encoder cur %d", pPrivate_t->iCurrentCount)
 		DEBUG_LOG("\r\nDBG set encoder tar %d", pPrivate_t->iTargetCount)
@@ -312,7 +314,7 @@ void IncEncoderControlInit(IncEncoderControl *Block_t, EncoderParmas *Params_t)
 //		DEBUG_LOG("\r\nDBG encoder count per round %d", pPrivate_t->iCountPerRound)
 		//ÅäÖÃ±àÂëÆ÷µ±Ç°Öµ
 		pPrivate_t->iCurrentCount = 0;
-		pPrivate_t->fPitch = 10;
+		pPrivate_t->fPitch = Params_t->fPitch;
 		
 		pPrivate_t->iRelativeDistStart = 0;
 		pPrivate_t->iRelativeDist = 0;

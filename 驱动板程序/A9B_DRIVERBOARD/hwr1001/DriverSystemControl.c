@@ -165,10 +165,14 @@ static void DataStructureInit(void)
 				}
 				
 				StepperSysParams_t.StepperParams_t.fPitch = 10;
+				StepperSysParams_t.EncoderParmas_t.fPitch = 10;
 				
 				if(0xA3 == iStdId || 0xB3 == iStdId)
 				{
+						DEBUG_LOG("\r\nDBG pitch=5");
 						StepperSysParams_t.StepperParams_t.fPitch = 5;
+						StepperSysParams_t.EncoderParmas_t.fPitch = 5;
+						//StepperSysParams_t.StepperParams_t.iSubdivisionCfg = 16;
 				}
 				
 				MotorParams_t.pMotorSysParams = &StepperSysParams_t;
@@ -324,8 +328,8 @@ void CommandFromHostHandler(const uint8_t *pRawData, const uint8_t iDataLen)
 						//if(2 == pRawData[1])
 						if(1)
 						{
-								//g_MotionBlock_t.m_pHomeAxisImmediately(g_MotionBlock_t.m_pThisPrivate, 0, ((uint32_t)pRawData[2] << 8 | pRawData[3]));
-							g_MotionBlock_t.m_pHomeAxisImmediately(g_MotionBlock_t.m_pThisPrivate, 0, ((uint32_t)pRawData[3] << 8 | pRawData[2]));
+								g_MotionBlock_t.m_pHomeAxisImmediately(g_MotionBlock_t.m_pThisPrivate, 0, ((uint32_t)pRawData[2] << 8 | pRawData[3]));
+//							g_MotionBlock_t.m_pHomeAxisImmediately(g_MotionBlock_t.m_pThisPrivate, 0, ((uint32_t)pRawData[3] << 8 | pRawData[2]));
 						}
 				#endif
 				break;
@@ -496,6 +500,7 @@ void DriverSystemRun(void)
 		
 		g_Communication_t.m_pExeBlock(g_Communication_t.m_pThisPrivate);
 		g_MotionBlock_t.m_ExeMotionBlcok(g_MotionBlock_t.m_pThisPrivate, &eCmdType);
+		arrData[1] = DriverBoardInfo.iDriverID;
 		switch(eCmdType)
 		{
 				case HOME:

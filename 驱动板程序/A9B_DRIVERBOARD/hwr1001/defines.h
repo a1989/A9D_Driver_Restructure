@@ -120,6 +120,7 @@ typedef struct
 		PulseTIM eEncoderTIM;
 		uint32_t iEncoderLines;
 		uint8_t iMultiplication;
+		float fPitch;
 }EncoderParmas;
 
 typedef struct

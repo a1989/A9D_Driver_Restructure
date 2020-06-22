@@ -379,7 +379,7 @@ bool DRV8711_SetSubdivision(PrivateBlock *pPrivate, uint8_t iCfg)
 						iRegCfg = 0x08;//256Ï¸·Ö
             break;
         default:
-						iRegCfg = 0x05;
+						iRegCfg = 0x04;
 						break;
     }
 		
