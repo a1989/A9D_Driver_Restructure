@@ -124,16 +124,16 @@ int main(void)
   uint32_t i = 0;
 	while (1)
 	{
-              if(i > 30000)
-              {	
-//                 printf("\r\n %d,%d", iDebug0, iDebug1);
-                  i = 0;
-              }
-              else
-              {
-                  i++;
-              }
-	/* USER CODE END WHILE */
+//              if(i > 30000)
+//              {	
+////                 printf("\r\n %d,%d", iDebug0, iDebug1);
+//                  i = 0;
+//              }
+//              else
+//              {
+//                  i++;
+//              }
+//	/* USER CODE END WHILE */
 
 	/* USER CODE BEGIN 3 */
 //		LED_Running();

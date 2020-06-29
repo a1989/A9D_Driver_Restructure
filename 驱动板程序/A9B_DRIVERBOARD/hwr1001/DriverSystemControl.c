@@ -235,7 +235,7 @@ void QueryFromHostHandler(const uint8_t *pRawData, const uint8_t iRawDataLen)
 	
 		//先组合数据
 		arrDataBuffer[0] = 0x0;
-		arrDataBuffer[1] = 0x0;
+		arrDataBuffer[1] = DriverBoardInfo.iDriverID;;
 		arrDataBuffer[2] = pRawData[0];	
 		switch((QueryDataObj)pRawData[0])
 		{
@@ -267,9 +267,9 @@ void QueryFromHostHandler(const uint8_t *pRawData, const uint8_t iRawDataLen)
 				DEBUG_LOG("\r\nlinear pos:%d,speed:%d", iLinearPos, iLinearSpeed)
 				arrDataBuffer[3] = 0x04;
 				arrDataBuffer[4] = (iLinearPos >> 8) & 0xFF;
-				arrDataBuffer[5] = iLimitValue & 0xFF;
-				arrDataBuffer[6] = (iLimitValue >> 8) & 0xFF;
-				arrDataBuffer[7] = iLimitValue & 0xFF;
+				arrDataBuffer[5] = iLinearPos & 0xFF;
+				arrDataBuffer[6] = (iLinearSpeed >> 8) & 0xFF;
+				arrDataBuffer[7] = iLinearSpeed & 0xFF;
 				iDataLen = 8;
 				break;
 			//请求限位状态
@@ -307,29 +307,44 @@ void CommandFromHostHandler(const uint8_t *pRawData, const uint8_t iDataLen)
 		uint32_t iDistRaw;
 		uint32_t iSpeedRaw;
 		uint8_t iMotorID;
-	
+//		DEBUG_LOG("\r\nDBG %d", iDataLen)
 		switch((CmdDataObj)pRawData[0])
 		{
 			case MOVE:
 				DEBUG_LOG("\r\nDBG CMD Move")
+				
 				//将运动数据写入运动控制块
-				iDistRaw = ((uint32_t)pRawData[2] << 8 | pRawData[3]);
-				iSpeedRaw = ((uint32_t)pRawData[4] << 8 | pRawData[5]);
+				iDistRaw = ((uint32_t)pRawData[2] << 8) | pRawData[3];
+				iSpeedRaw = ((uint32_t)pRawData[4] << 8) | pRawData[5];
 				iMotorID = 0;
-				if(4 == pRawData[1])
+				
+				if(4 == pRawData[1] && 6 == iDataLen)
 				{
-						
+						if(0 == iSpeedRaw)
+						{
+								break;
+						}
+						printf("\r\nDBG dist %d,spd %d", iDistRaw, iSpeedRaw);
+						DEBUG_LOG("\r\nDBG CMD Move %d, %d", iDistRaw, iSpeedRaw)
+//						if(iSpeedRaw < 60)
+//						{
+//								iSpeedRaw = 60;
+//						}
 						g_MotionBlock_t.m_pSetMotorMoveData(g_MotionBlock_t.m_pThisPrivate, &iMotorID, &iDistRaw, &iSpeedRaw);
 				}
 				break;
 			case HOME:
 				DEBUG_LOG("\r\nDBG CMD Home")
 				#if HARDWARE_VERSION == CHENGDU_DESIGN || HARDWARE_VERSION == SHENZHEN_DESIGN_V1
-						//if(2 == pRawData[1])
-						if(1)
+						if(2 == pRawData[1] && 4 == iDataLen)
 						{
-								g_MotionBlock_t.m_pHomeAxisImmediately(g_MotionBlock_t.m_pThisPrivate, 0, ((uint32_t)pRawData[2] << 8 | pRawData[3]));
-//							g_MotionBlock_t.m_pHomeAxisImmediately(g_MotionBlock_t.m_pThisPrivate, 0, ((uint32_t)pRawData[3] << 8 | pRawData[2]));
+							  
+								g_MotionBlock_t.m_pHomeAxisImmediately(g_MotionBlock_t.m_pThisPrivate, 0, (((uint32_t)pRawData[2] << 8) | pRawData[3]));
+						}
+						else
+						{
+								//printf("\r\nlen %d", iDataLen);
+								printf("\r\nHome Wrong Data");
 						}
 				#endif
 				break;
@@ -508,6 +523,7 @@ void DriverSystemRun(void)
 					DataSendHandler(arrData, 3, eCAN1);
 					break;
 				case MOVE:
+					DEBUG_LOG("\r\narrived")
 					arrData[2] = (uint8_t)MOVE;
 					arrData[3] = 0x02;
 					iMotorID = 0;

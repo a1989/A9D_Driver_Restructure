@@ -44,6 +44,7 @@ typedef struct structMotorList
 		bool (*m_pLimitTouch)(LimitsNode *LimitNode, LimitFunction eLimit);
 		bool (*m_pTargetArrived)(void *pEncoder_t);		
 		bool bHomed;
+		bool bGoingHome;
 }MotorList;
 
 //每个运动单节点的参数
@@ -77,11 +78,11 @@ typedef struct
 		//单节点信息缓存区
 		MoveNodeParams arrNodeBuffer[MOVE_NODE_NUM];
 		//写缓存区索引
-		uint8_t iWriteIndex;
+		volatile uint8_t iWriteIndex;
 		//读缓存区索引
-		uint8_t iReadIndex;
+		volatile uint8_t iReadIndex;
 		//缓存区长度
-		uint8_t iBufferLen;
+		volatile uint8_t iBufferLen;
 }MoveNodeList;
 
 typedef struct
@@ -141,10 +142,12 @@ MoveNodeList *MallocMoveNode_t(void)
 						pNode_t->arrNodeBuffer[i].p_iHomeDir = (int8_t *)malloc(sizeof(int8_t));
 						pNode_t->arrNodeBuffer[i].p_fSpeed = (float *)malloc(sizeof(float));
 						pNode_t->arrNodeBuffer[i].p_fTargetPos = (float *)malloc(sizeof(float));
+						
 						if(NULL == pNode_t->arrNodeBuffer[i].p_iID || 
 								NULL == pNode_t->arrNodeBuffer[i].p_bHome || 
 								NULL == pNode_t->arrNodeBuffer[i].p_iHomeDir || 
-								NULL == pNode_t->arrNodeBuffer[i].p_fSpeed)
+								NULL == pNode_t->arrNodeBuffer[i].p_fSpeed || 
+								NULL == pNode_t->arrNodeBuffer[i].p_fTargetPos)
 						{
 								printf("\r\nfunc:%s:var malloc failed", __FUNCTION__);
 								return NULL;									
@@ -269,7 +272,7 @@ static bool AddMotor(PRIVATE_MEMBER_TYPE *pThisPrivate, MotorParams *pParams_t)
 					pList->hMotorTim = pStepper_t->m_pGetStepperTimHandle(pStepper_t->m_pThisPrivate);
 					pList->m_pTargetArrived = pIncEncoder_t->m_pIncEncoderTargetArrived;
 					pList->m_pLimitTouch = LimitTouch;
-					
+					pList->bGoingHome = false;
 					break;
 				default:
 					break;
@@ -377,24 +380,45 @@ void MotorIntHandler(PRIVATE_MEMBER_TYPE *pPrivate, TIM_HandleTypeDef *hTIM)
 
 void PushMoveData(MoveNodeList *Node_t, MoveNodeParams *Params_t)
 {
-		DEBUG_LOG("\r\nDBG Push Move Data")
-	
-		Node_t->arrNodeBuffer[Node_t->iWriteIndex].bBusy = Params_t->bBusy;
-		Node_t->arrNodeBuffer[Node_t->iWriteIndex].bDistanceArrived = Params_t->bDistanceArrived;		
-		Node_t->arrNodeBuffer[Node_t->iWriteIndex].bStop = Params_t->bStop;
-	
-		#if HARDWARE_VERSION == CHENGDU_DESIGN || HARDWARE_VERSION == SHENZHEN_DESIGN_V1
-				memcpy(Node_t->arrNodeBuffer[Node_t->iWriteIndex].p_bHome, Params_t->p_bHome, sizeof(bool));
-				memcpy(Node_t->arrNodeBuffer[Node_t->iWriteIndex].p_iHomeDir, Params_t->p_iHomeDir, sizeof(uint8_t));
-				memcpy(Node_t->arrNodeBuffer[Node_t->iWriteIndex].p_iID, Params_t->p_iID, sizeof(uint8_t));
-				memcpy(Node_t->arrNodeBuffer[Node_t->iWriteIndex].p_fSpeed, Params_t->p_fSpeed, sizeof(float));
-				memcpy(Node_t->arrNodeBuffer[Node_t->iWriteIndex].p_fTargetPos, Params_t->p_fTargetPos, sizeof(float));
-		#endif
-	
-		Node_t->iWriteIndex = (Node_t->iWriteIndex + 1) % MOVE_NODE_NUM;
-		Node_t->iBufferLen++;
-		
-		DEBUG_LOG("\r\nDBG Push Move Data End")
+		if(Node_t->iBufferLen <= MOVE_NODE_NUM)
+		{
+				DEBUG_LOG("\r\nDBG Push Move Data")
+				DEBUG_LOG("\r\nDBG wi%d", Node_t->iWriteIndex)
+				DEBUG_LOG("\r\nDBG ri%d", Node_t->iReadIndex)
+				DEBUG_LOG("\r\nDBG bl%d", Node_t->iBufferLen)
+				if(NULL == Params_t)
+				{
+					DEBUG_LOG("\r\nDBG null")
+				}
+				Node_t->arrNodeBuffer[Node_t->iWriteIndex].bBusy = Params_t->bBusy;
+//				DEBUG_LOG("\r\nDBG0")
+				Node_t->arrNodeBuffer[Node_t->iWriteIndex].bDistanceArrived = Params_t->bDistanceArrived;		
+//				DEBUG_LOG("\r\nDBG1")
+				Node_t->arrNodeBuffer[Node_t->iWriteIndex].bStop = Params_t->bStop;
+//				DEBUG_LOG("\r\nDBG2")
+				#if HARDWARE_VERSION == CHENGDU_DESIGN || HARDWARE_VERSION == SHENZHEN_DESIGN_V1
+						memcpy(Node_t->arrNodeBuffer[Node_t->iWriteIndex].p_bHome, Params_t->p_bHome, sizeof(bool));
+//				DEBUG_LOG("\r\nDBG3")
+						memcpy(Node_t->arrNodeBuffer[Node_t->iWriteIndex].p_iHomeDir, Params_t->p_iHomeDir, sizeof(uint8_t));
+//				DEBUG_LOG("\r\nDBG4")
+						memcpy(Node_t->arrNodeBuffer[Node_t->iWriteIndex].p_iID, Params_t->p_iID, sizeof(uint8_t));
+//				DEBUG_LOG("\r\nDBG5")
+						memcpy(Node_t->arrNodeBuffer[Node_t->iWriteIndex].p_fSpeed, Params_t->p_fSpeed, sizeof(float));		
+//				DEBUG_LOG("\r\nDBG6")				
+//				if(NULL == Params_t->p_fTargetPos || NULL == Node_t->arrNodeBuffer[Node_t->iWriteIndex].p_fTargetPos)
+//				{
+//						DEBUG_LOG("\r\nDBG61")
+//				}
+						memcpy(Node_t->arrNodeBuffer[Node_t->iWriteIndex].p_fTargetPos, Params_t->p_fTargetPos, sizeof(float));
+//				DEBUG_LOG("\r\nDBG7")
+						//DEBUG_LOG("\r\nDBG Push Move Data 1")
+				#endif
+			
+				Node_t->iWriteIndex = (Node_t->iWriteIndex + 1) % MOVE_NODE_NUM;
+				Node_t->iBufferLen++;
+				
+				DEBUG_LOG("\r\nDBG Push Move Data End")
+		}
 }
 
 bool PopMoveData(MoveNodeList *Node_t, MoveNodeParams *Params_t)
@@ -453,6 +477,7 @@ void MotorHome(MoveNodeList *pNode, uint8_t *iMotorID, uint32_t *iSpeed)
 					bool bStop = false;
 					int8_t iHomeDir = NEGTIVE_DIRECTION;
 					float fSpeed = (float)(*iSpeed) / 10;
+					float fTarget = -100000;
 		#endif
 		Params_t.bBusy = false;
 		Params_t.bDistanceArrived = false;
@@ -461,6 +486,7 @@ void MotorHome(MoveNodeList *pNode, uint8_t *iMotorID, uint32_t *iSpeed)
 		Params_t.bStop = false;
 		Params_t.p_iID = iMotorID;
 		Params_t.p_fSpeed = &fSpeed;
+		Params_t.p_fTargetPos = &fTarget;
 	
 		PushMoveData(pNode, &Params_t);
 }
@@ -490,6 +516,8 @@ bool SetMoveParams(PRIVATE_MEMBER_TYPE *pThisPrivate, uint8_t *iMotorID, float *
 		Params_t.p_fTargetPos = fMoveDist;
 		Params_t.p_fSpeed = fMoveSpeed;
 		Params_t.p_iID = iMotorID;
+		Params_t.bStop = false;
+		Params_t.p_iHomeDir = &iHomeDir;
 		
 		PushMoveData(pPrivate->pMoveNodeList, &Params_t);
 		
@@ -507,7 +535,7 @@ static bool MotorHomeImmediately(PRIVATE_MEMBER_TYPE *pThisPrivate, uint8_t iMot
 		}
 		
 		StopAxisModerate(pPrivate, &iMotorID);
-		ClearMoveNodeAll(pPrivate->pMoveNodeList);
+//		ClearMoveNodeAll(pPrivate->pMoveNodeList);
 
 		MotorHome(pPrivate->pMoveNodeList, &iMotorID, &iSpeed);
 		
@@ -1055,9 +1083,13 @@ static void ExeMotorControl(PRIVATE_MEMBER_TYPE *pPrivate, CmdDataObj *eCmdType)
 																	default:
 																		break;
 															}
-															//break;													
+															//break;	
+															eMoveStep = eWAIT_ARRIVE;
 													}
-													eMoveStep = eWAIT_ARRIVE;
+													else
+													{
+															eMoveStep = eARRIVE;
+													}
 											case eWAIT_ARRIVE:
 													if(IncEncoder_t->m_pIncEncoderTargetArrived(IncEncoder_t->m_pThisPrivate))
 													{
@@ -1067,6 +1099,7 @@ static void ExeMotorControl(PRIVATE_MEMBER_TYPE *pPrivate, CmdDataObj *eCmdType)
 													}
 													else
 													{
+															//DEBUG_LOG("\r\nDBG target not arrived")
 															break;
 													}
 											case eARRIVE:

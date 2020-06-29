@@ -11,7 +11,7 @@
 #define VOID_HandleTypeDef		void
 #define IS_DATA_TYPE_CORRECT(strParams1, strParams2)		(!strcmp(strParams1, strParams2))
 
-#define DEBUG_LOG_ENABLE	1
+#define DEBUG_LOG_ENABLE	0
 #define DEBUG_LOG(strParams, ...)		if(DEBUG_LOG_ENABLE)\
 																		{\
 																				printf(strParams, ##__VA_ARGS__);\
