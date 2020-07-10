@@ -57,6 +57,13 @@ typedef struct
 static void PushRecvBuffer(StructRecvHandler *Block_t, uint8_t *pData, uint8_t iDataLen, CommunicationType eType)
 {
 		DEBUG_LOG("\r\nrecv buffer start push data:length:%d", iDataLen)
+	
+//		for(int i = 0; i < iDataLen; i++)
+//		{
+//				DEBUG_LOG("\r\n%x", *(pData + i))
+//		}
+//	
+//		DEBUG_LOG("\r\n")
 		
 		if(Block_t->iBufferLen < RECV_BUFFER_SIZE - 1)
 		{				
@@ -67,6 +74,7 @@ static void PushRecvBuffer(StructRecvHandler *Block_t, uint8_t *pData, uint8_t i
 				Block_t->iWriteIndex = (Block_t->iWriteIndex + 1) % RECV_BUFFER_SIZE;
 			
 				DEBUG_LOG("\r\nrecv buffer:length:%d,write index:%d\r\n", iDataLen, Block_t->iWriteIndex)
+
 		}
 		else
 		{

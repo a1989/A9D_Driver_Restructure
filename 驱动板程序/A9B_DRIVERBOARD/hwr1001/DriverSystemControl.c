@@ -174,7 +174,7 @@ static void DataStructureInit(void)
 						StepperSysParams_t.EncoderParmas_t.fPitch = 5;
 						//StepperSysParams_t.StepperParams_t.iSubdivisionCfg = 16;
 				}
-				
+				DEBUG_LOG("\r\nDBG pitch=10");
 				MotorParams_t.pMotorSysParams = &StepperSysParams_t;
 				//新增一个电机
 				g_MotionBlock_t.m_pAddMotor(g_MotionBlock_t.m_pThisPrivate, &MotorParams_t);
@@ -307,6 +307,7 @@ void CommandFromHostHandler(const uint8_t *pRawData, const uint8_t iDataLen)
 		uint32_t iDistRaw;
 		uint32_t iSpeedRaw;
 		uint8_t iMotorID;
+		uint32_t iLastTarget;
 //		DEBUG_LOG("\r\nDBG %d", iDataLen)
 		switch((CmdDataObj)pRawData[0])
 		{
@@ -317,7 +318,10 @@ void CommandFromHostHandler(const uint8_t *pRawData, const uint8_t iDataLen)
 				iDistRaw = ((uint32_t)pRawData[2] << 8) | pRawData[3];
 				iSpeedRaw = ((uint32_t)pRawData[4] << 8) | pRawData[5];
 				iMotorID = 0;
-				
+				if(iLastTarget == iDistRaw)
+				{
+						break;
+				}
 				if(4 == pRawData[1] && 6 == iDataLen)
 				{
 						if(0 == iSpeedRaw)
@@ -326,11 +330,9 @@ void CommandFromHostHandler(const uint8_t *pRawData, const uint8_t iDataLen)
 						}
 						printf("\r\nDBG dist %d,spd %d", iDistRaw, iSpeedRaw);
 						DEBUG_LOG("\r\nDBG CMD Move %d, %d", iDistRaw, iSpeedRaw)
-//						if(iSpeedRaw < 60)
-//						{
-//								iSpeedRaw = 60;
-//						}
+
 						g_MotionBlock_t.m_pSetMotorMoveData(g_MotionBlock_t.m_pThisPrivate, &iMotorID, &iDistRaw, &iSpeedRaw);
+						iLastTarget = iDistRaw;
 				}
 				break;
 			case HOME:

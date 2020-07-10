@@ -18,9 +18,46 @@ typedef struct
 		bool bReverseCountDir;
 		int32_t iRelativeDistStart;
 		int32_t iRelativeDist;
+		bool bArrived;
 }PrivateBlock;
 
 IncEncoderTableInt *IncEncoderTableInt_t = NULL;
+
+bool IsTargetArrived(PRIVATE_MEMBER_TYPE *m_pThisPrivate)
+{
+		PrivateBlock *pPrivate_t = (PrivateBlock *)m_pThisPrivate;
+		
+		if(NULL == pPrivate_t)
+		{
+				printf("\r\nfunc:%s:block null pointer", __FUNCTION__);
+				return false;
+		}				
+
+		return pPrivate_t->bArrived;
+}
+
+bool IsNextPointSet(PRIVATE_MEMBER_TYPE *m_pThisPrivate)
+{
+		static int32_t iLastTargetCount;
+	
+		PrivateBlock *pPrivate_t = (PrivateBlock *)m_pThisPrivate;
+		
+		if(NULL == pPrivate_t)
+		{
+				printf("\r\nfunc:%s:block null pointer", __FUNCTION__);
+				return false;
+		}		
+
+		if(iLastTargetCount == pPrivate_t->iTargetCount)
+		{
+				return false;
+		}
+		else
+		{
+				iLastTargetCount = pPrivate_t->iTargetCount;
+				return true;
+		}
+}
 
 bool SetEncoderTarget(PRIVATE_MEMBER_TYPE *m_pThisPrivate, float fTarget)
 {
@@ -41,6 +78,7 @@ bool SetEncoderTarget(PRIVATE_MEMBER_TYPE *m_pThisPrivate, float fTarget)
 		DEBUG_LOG("\r\nDBG set encoder tar %d", pPrivate_t->iTargetCount)
 		pPrivate_t->bCountUp = (pPrivate_t->iTargetCount > pPrivate_t->iCurrentCount) ? true : false;
 		pPrivate_t->iRelativeDistStart = pPrivate_t->iCurrentCount;
+		pPrivate_t->bArrived = false;
 		
 		return true;
 }
@@ -263,18 +301,19 @@ bool IncEncoderTargetArrived(PRIVATE_MEMBER_TYPE *m_pThisPrivate)
 		//DEBUG_LOG("\r\nt%d,c%d", pPrivate_t->iTargetCount, pPrivate_t->iCurrentCount)
 		if(pPrivate_t->bCountUp)
 		{
-				
 				if(pPrivate_t->iCurrentCount >= pPrivate_t->iTargetCount)
 				{			
-						DEBUG_LOG("\r\nDBG Arrived+")
-						return true;
+						DEBUG_LOG("\r\nDBG inc Arrived+")
+						pPrivate_t->bArrived = true;
+						return true;						
 				}
 		}
 		else
 		{
 				if(pPrivate_t->iCurrentCount <= pPrivate_t->iTargetCount)
 				{
-						DEBUG_LOG("\r\nDBG Arrived-")
+						DEBUG_LOG("\r\nDBG inc Arrived-")
+						pPrivate_t->bArrived = true;
 						return true;
 				}				
 		}
@@ -321,7 +360,7 @@ void IncEncoderControlInit(IncEncoderControl *Block_t, EncoderParmas *Params_t)
 		pPrivate_t->iPeriodCount = 0;
 		pPrivate_t->iCountDelta = 0;
 		pPrivate_t->iTargetCount = 0;
-		
+		pPrivate_t->bArrived = false;
 		Block_t->m_pGetEncoderLinearValue = GetEncoderLinearValue;
 		Block_t->m_pIncEncoderTargetArrived = IncEncoderTargetArrived;
 		Block_t->m_pThisPrivate = pPrivate_t;
@@ -330,6 +369,8 @@ void IncEncoderControlInit(IncEncoderControl *Block_t, EncoderParmas *Params_t)
 		Block_t->m_pGetEncoderLinearSpeed = GetEncoderLinearSpeed;
 		Block_t->m_pReverseCountDir = ReverseCountDir;
 		Block_t->m_pGetEncoderRelativeValueAbs = GetEncoderRelativeValueAbs;
+		Block_t->m_pIsTargetArrived = IsTargetArrived;
+		Block_t->m_pIsNextPointSet = IsNextPointSet;
 		
 		RegisterEncoderVar(pPrivate_t);
 //		__HAL_TIM_SET_COUNTER (&htim3, 0);

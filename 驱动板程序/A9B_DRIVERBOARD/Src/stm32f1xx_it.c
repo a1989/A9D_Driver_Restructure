@@ -124,7 +124,8 @@ void MemManage_Handler(void)
 void BusFault_Handler(void)
 {
   /* USER CODE BEGIN BusFault_IRQn 0 */
-
+	printf("\r\nBus Fault");
+	
   /* USER CODE END BusFault_IRQn 0 */
   while (1)
   {

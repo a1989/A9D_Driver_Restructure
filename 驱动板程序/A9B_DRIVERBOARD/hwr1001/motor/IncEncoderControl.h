@@ -15,6 +15,8 @@ typedef struct
 		bool (*m_pSetEncoderValuef)(PRIVATE_MEMBER_TYPE *m_pThisPrivate, float fValue);
 		bool (*m_pReverseCountDir)(PRIVATE_MEMBER_TYPE *m_pThisPrivate, bool bValue);
 		bool (*m_pGetEncoderRelativeValueAbs)(PRIVATE_MEMBER_TYPE *m_pThisPrivate, uint32_t *iValue);
+		bool (*m_pIsTargetArrived)(PRIVATE_MEMBER_TYPE *m_pThisPrivate);
+		bool (*m_pIsNextPointSet)(PRIVATE_MEMBER_TYPE *m_pThisPrivate);
 }IncEncoderControl;
 
 typedef struct IncEncoderTable

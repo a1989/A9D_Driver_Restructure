@@ -189,29 +189,42 @@ static bool WriteSPI(SPI_HandleTypeDef *hSPI, DRV8711_PinConfig *pPinConfig, uin
 
 static bool ReadSPI(SPI_HandleTypeDef *hSPI, DRV8711_PinConfig *pPinConfig, uint8_t iAddr, uint16_t *iData)
 {
-		uint8_t iSendBuffer[2];
-		uint8_t iRecvBuffer[2];
-		uint16_t iRecvData;
+//		uint8_t iSendBuffer[2];
+//		uint8_t iRecvBuffer[2];
+		uint8_t iSendData;
+		uint8_t iRecvData0;
+		uint8_t iRecvData1;
+		uint8_t iSendDataDefault = 0xFF;
 		HAL_StatusTypeDef eStatus;
 		
-		iSendBuffer[0] = iAddr;
-		iSendBuffer[1] = 0xFF;
+//		iSendBuffer[0] = iAddr;
+//		iSendBuffer[1] = 0xFF;
+	
+		iSendData = (0x08 | iAddr) << 4;
 		
-		DEBUG_LOG("\r\nwrite spi:0x%02x%02x", iSendBuffer[0], iSendBuffer[1])
+	
+		DEBUG_LOG("\r\nwrite spi:0x%02x", iSendData)
 		
 		SET_PIN(pPinConfig->CSPin.GPIO_Port, pPinConfig->CSPin.GPIO_Pin);
 	
-		eStatus = HAL_SPI_TransmitReceive (hSPI, iSendBuffer, iRecvBuffer, 2, 0xFFFFFF);
+		eStatus = HAL_SPI_TransmitReceive (hSPI, &iSendData, &iRecvData0, 1, 0xFFFFFF);
 		if(HAL_OK != eStatus)
 		{
 				printf("\r\nwrite 8711 spi failed:%02x", eStatus);
 				return false;			
 		}
 		
+		eStatus = HAL_SPI_TransmitReceive (hSPI, &iSendDataDefault, &iRecvData1, 1, 0xFFFFFF);
+		if(HAL_OK != eStatus)
+		{
+				printf("\r\nwrite 8711 spi failed:%02x", eStatus);
+				return false;			
+		}		
+		
 		RESET_PIN(pPinConfig->CSPin.GPIO_Port, pPinConfig->CSPin.GPIO_Pin);
 		
-		iRecvData = (((uint16_t)iSendBuffer[0]) << 8) | (iSendBuffer[1]);
-		*iData = iRecvData;
+//		iRecvData = (((uint16_t)iSendBuffer[0]) << 8) | (iSendBuffer[1]);
+		*iData = ((iRecvData0 & 0x0F) << 8) | iRecvData1;
 		
 		return true;		
 }
@@ -549,6 +562,10 @@ bool DRV8711_Init(DRV8711_Control *Block_t, DRV8711_Params *Params_t)
 		DEBUG_LOG("\r\nDBG 8711 CurrentCfg val:%x", Params_t->iCurrentCfg);
 //		
 		EnableMotor(pPrivate);
+		
+		uint16_t v;
+		ReadSPI(&pPrivate->hSPI, &pPrivate->PinConfig_t, CTRL_REG_ADDR, &v);
+		DEBUG_LOG("\r\nDBG read CTRL val:%x", v);
 		
 		Block_t->m_pDRV8711_Backward = DRV8711_Backward;
 		Block_t->m_pDRV8711_Forward = DRV8711_Forward;
