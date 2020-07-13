@@ -37,7 +37,7 @@ typedef struct
 		bool (*m_pSetStepperDirHighAsForward)(PRIVATE_MEMBER_TYPE *pPrivate, bool bValue);
 		TIM_HandleTypeDef *(*m_pGetStepperTimHandle)(PRIVATE_MEMBER_TYPE *pPrivate);
 		bool (*m_pIsStepperStop)(PRIVATE_MEMBER_TYPE *pPrivate);
-		bool (*m_pIsDirectionReverse)(PRIVATE_MEMBER_TYPE *pPrivate);
+		bool (*m_pIsNextDirectionReverse)(PRIVATE_MEMBER_TYPE *pPrivate);
 }StepperControl;
 
 void StepperControlInit(StepperControl *Stepper_t, StepperParams *Params_t);

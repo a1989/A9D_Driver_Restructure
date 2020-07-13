@@ -66,7 +66,10 @@ typedef struct
 		bool bPlateauAll;
 		int16_t iPlatValueOC;
 		bool bDirForward;
-		bool bPlan;
+		bool bAccPlan;
+		bool bDecPlan;
+		float fMaxSpeed;
+		uint16_t iPlanOC;	
 }CurveParmas;
 
 typedef struct
@@ -84,7 +87,6 @@ typedef struct
 		void *pDriver;
 		CurveParmas arrCurveParmas[CURVE_BUFFER_SIZE];
 		bool bStop;
-		
 //		uint32_t iAccDist;
 //		uint32_t iPlatDist;
 //		uint32_t iDecDist;
@@ -117,10 +119,11 @@ static bool IsStepperStop(PRIVATE_MEMBER_TYPE *pPrivate)
 		return (pPrivate_t->bStop);
 }
 
-static bool IsDirectionReverse(PRIVATE_MEMBER_TYPE *pPrivate)
+static bool IsNextDirectionReverse(PRIVATE_MEMBER_TYPE *pPrivate)
 {
 		PrivateBlock *pPrivate_t = (PrivateBlock *)pPrivate;
-		static bool bDirForwardLast = true;
+		bool bDirForwardCurrent = true;
+		bool bDirForwardNext = true;
 		bool bReverse;
 		if(NULL == pPrivate_t)
 		{
@@ -128,10 +131,17 @@ static bool IsDirectionReverse(PRIVATE_MEMBER_TYPE *pPrivate)
 				return false;
 		}		
 		
-		bReverse = (bDirForwardLast != pPrivate_t->arrCurveParmas[pPrivate_t->iParamsReadIndex].bDirForward);
-		bDirForwardLast = pPrivate_t->arrCurveParmas[pPrivate_t->iParamsReadIndex].bDirForward;
-		
-		return bReverse;
+//		DEBUG_LOG("\r\nDBG l %d,c %d", bDirForwardLast, pPrivate_t->arrCurveParmas[pPrivate_t->iParamsReadIndex].bDirForward)
+		bDirForwardCurrent = pPrivate_t->arrCurveParmas[pPrivate_t->iParamsReadIndex].bDirForward;
+		bDirForwardNext = pPrivate_t->arrCurveParmas[(pPrivate_t->iParamsReadIndex + 1) % CURVE_BUFFER_SIZE].bDirForward;
+		if(bDirForwardCurrent != bDirForwardNext)
+		{
+				return true;
+		}
+		else
+		{
+				return false;
+		}
 }
 
 void StepperStop(PRIVATE_MEMBER_TYPE *pPrivate)
@@ -163,7 +173,8 @@ void StepperStop(PRIVATE_MEMBER_TYPE *pPrivate)
 		
 		if(0 == pPrivate_t->iParmasBufferLen)
 		{
-				DEBUG_LOG("\r\nDBG stop oc buflen=0")				
+				DEBUG_LOG("\r\nDBG stop oc buflen=0")			
+				
 				HAL_TIM_OC_Stop_IT (&htim2, TIM_CHANNEL_1);	
 				pPrivate_t->bStop = true;
 				bWaitNextPointSet = false;
@@ -175,13 +186,13 @@ void StepperStop(PRIVATE_MEMBER_TYPE *pPrivate)
 		{
 				//如果即将开始的运动和本次运动方向不同则停止
 				DEBUG_LOG("\r\nDBG stop oc dir rev")
-				
+			
 				HAL_TIM_OC_Stop_IT (&htim2, TIM_CHANNEL_1);
 				pPrivate_t->bStop = true;
 		}
 		else
 		{
-				HAL_TIM_OC_Stop_IT (&htim2, TIM_CHANNEL_1);
+//				HAL_TIM_OC_Stop_IT (&htim2, TIM_CHANNEL_1);
 				bWaitNextPointSet = true;
 		}
 
@@ -222,7 +233,7 @@ void StopStepperModerate(PrivateBlock *pPrivate)
 				return;
 		}	
 
-		HAL_TIM_OC_Stop_IT (&pPrivate_t->hTIM, TIM_CHANNEL_1);
+//		HAL_TIM_OC_Stop_IT (&pPrivate_t->hTIM, TIM_CHANNEL_1);
 }
 
 
@@ -272,6 +283,13 @@ void SetTIM_OC(PRIVATE_MEMBER_TYPE *pThisPrivate, TIM_HandleTypeDef *hTIM, uint3
 						}
 												
 						iToggleParam = pPrivate->arrCurveParmas[pPrivate->iParamsReadIndex].arrAccDivisionTable[pPrivate->arrCurveParmas[pPrivate->iParamsReadIndex].iAccTableIndex][0];
+						if(pPrivate->arrCurveParmas[pPrivate->iParamsReadIndex].bAccPlan)
+						{
+								if(iToggleParam > pPrivate->arrCurveParmas[pPrivate->iParamsReadIndex].iPlanOC)
+								{
+										iToggleParam = pPrivate->arrCurveParmas[pPrivate->iParamsReadIndex].iPlanOC;
+								}
+						}
 				}
 				//匀速段
 				else if(iPos >= pPrivate->arrCurveParmas[pPrivate->iParamsReadIndex].iAccDist && iPos < pPrivate->arrCurveParmas[pPrivate->iParamsReadIndex].iDecAccumulation)
@@ -300,7 +318,14 @@ void SetTIM_OC(PRIVATE_MEMBER_TYPE *pThisPrivate, TIM_HandleTypeDef *hTIM, uint3
 								pPrivate->arrCurveParmas[pPrivate->iParamsReadIndex].bDecAddIndex = true;
 						}
 						
-						iToggleParam = pPrivate->arrCurveParmas[pPrivate->iParamsReadIndex].arrDecDivisionTable[pPrivate->arrCurveParmas[pPrivate->iParamsReadIndex].iDecTableIndex][0];						
+						iToggleParam = pPrivate->arrCurveParmas[pPrivate->iParamsReadIndex].arrDecDivisionTable[pPrivate->arrCurveParmas[pPrivate->iParamsReadIndex].iDecTableIndex][0];		
+						if(pPrivate->arrCurveParmas[pPrivate->iParamsReadIndex].bDecPlan)
+						{
+								if(iToggleParam > pPrivate->arrCurveParmas[pPrivate->iParamsReadIndex].iPlanOC)
+								{
+										iToggleParam = pPrivate->arrCurveParmas[pPrivate->iParamsReadIndex].iPlanOC;
+								}
+						}
 				}
 		}
 		
@@ -469,6 +494,8 @@ static void CalcCurveForBlockLinear(PrivateBlock *pPrivate, uint32_t iDistance, 
 				bPlateauAll = true;
 		}
 		
+		pPrivate_t->arrCurveParmas[pPrivate->iParmasWriteIndex].fMaxSpeed = fMaxSpeed;
+		
 		if(bPlateauAll)
 		{
 				//printf("\r\npa");
@@ -567,6 +594,7 @@ bool StepperMove(PRIVATE_MEMBER_TYPE *pPrivate)
 		}
 		else
 		{
+				DEBUG_LOG("\r\nDBG move stop")
 				StepperStop(pPrivate_t);
 		}
 		
@@ -593,7 +621,7 @@ bool StepperPrepare(PRIVATE_MEMBER_TYPE *pThisPrivate, float fDistance, float fS
 {
 		uint32_t iPulseDist;
 	  uint32_t iPulseSpeed;
-
+		static bool fLastDirForward = false;
 		PrivateBlock *pPrivate = (PrivateBlock *)pThisPrivate;
 	
 		if(NULL == pPrivate)
@@ -623,26 +651,64 @@ bool StepperPrepare(PRIVATE_MEMBER_TYPE *pThisPrivate, float fDistance, float fS
 				iPulseSpeed = (fSpeed / pPrivate->StepperParams_t.fPitch) * pPrivate->StepperParams_t.iSubdivisionCfg * 200
 										* pPrivate->StepperParams_t.fFeedBackRatio;
 				
+				pPrivate->arrCurveParmas[pPrivate->iParmasWriteIndex].bAccPlan = false;
+				pPrivate->arrCurveParmas[pPrivate->iParmasWriteIndex].bDecPlan = false;
 				//计算起始和收尾脉冲速度
 				pPrivate->arrCurveParmas[pPrivate->iParmasWriteIndex].iNominalStartSpeed = (float)MOTOR_START_SPEED * pPrivate->StepperParams_t.fFeedBackRatio;
 				pPrivate->arrCurveParmas[pPrivate->iParmasWriteIndex].iNominalEndSpeed = (float)MOTOR_END_SPEED * pPrivate->StepperParams_t.fFeedBackRatio;
-//				pPrivate->iNominalStartSpeed = (float)MOTOR_START_SPEED * pPrivate->StepperParams_t.fFeedBackRatio;
-//				pPrivate->iNominalEndSpeed = (float)MOTOR_END_SPEED * pPrivate->StepperParams_t.fFeedBackRatio;
+
 				pPrivate->arrCurveParmas[pPrivate->iParmasWriteIndex].bDirForward = true;
 				if(fDistance < 0)
 				{
+						//DEBUG_LOG("\r\ndir backward")
 						pPrivate->arrCurveParmas[pPrivate->iParmasWriteIndex].bDirForward = false;
 				}
-				DEBUG_LOG("\r\nStart calc curve")
-				CalcCurveForBlockLinear(pThisPrivate, iPulseDist, iPulseSpeed);
-
-				pPrivate->iParmasWriteIndex = (pPrivate->iParmasWriteIndex + 1) % CURVE_BUFFER_SIZE;
-				pPrivate->iParmasBufferLen++;
 				
-				if(pPrivate->iParmasBufferLen > 1)
+				fLastDirForward = pPrivate->arrCurveParmas[pPrivate->iParmasWriteIndex].bDirForward;
+				CalcCurveForBlockLinear(pThisPrivate, iPulseDist, iPulseSpeed);
+				
+				//如果当前的速度规划buffer里已经有数据了
+				if(pPrivate->iParmasBufferLen > 0)
+				{
+						if(fLastDirForward == pPrivate->arrCurveParmas[pPrivate->iParmasWriteIndex].bDirForward)
+						{
+								//如果当前的最大速度等于下一线段的最大速度
+								if(fabs(pPrivate->arrCurveParmas[pPrivate->iParamsReadIndex].fMaxSpeed - pPrivate->arrCurveParmas[pPrivate->iParmasWriteIndex].fMaxSpeed) < 0.1)
+								{
+										pPrivate->arrCurveParmas[pPrivate->iParamsReadIndex].bDecPlan = true;
+										pPrivate->arrCurveParmas[pPrivate->iParamsReadIndex].iPlanOC = pPrivate->arrCurveParmas[pPrivate->iParamsReadIndex].arrAccDivisionTable[ACC_TIME_DIVISION - 1][0];
+										pPrivate->arrCurveParmas[pPrivate->iParmasWriteIndex].bAccPlan = true;
+										pPrivate->arrCurveParmas[pPrivate->iParmasWriteIndex].iPlanOC = pPrivate->arrCurveParmas[pPrivate->iParmasWriteIndex].arrAccDivisionTable[ACC_TIME_DIVISION - 1][0];
+								}
+								//如果当前的最大速度大于下一线段的最大速度
+								else if(pPrivate->arrCurveParmas[pPrivate->iParamsReadIndex].fMaxSpeed - pPrivate->arrCurveParmas[pPrivate->iParmasWriteIndex].fMaxSpeed > 0.1)
+								{
+										pPrivate->arrCurveParmas[pPrivate->iParmasWriteIndex].bAccPlan = true;
+										pPrivate->arrCurveParmas[pPrivate->iParmasWriteIndex].iPlanOC = pPrivate->arrCurveParmas[pPrivate->iParmasWriteIndex].arrAccDivisionTable[ACC_TIME_DIVISION - 1][0];
+										pPrivate->arrCurveParmas[pPrivate->iParamsReadIndex].bDecPlan = true;
+										pPrivate->arrCurveParmas[pPrivate->iParamsReadIndex].iPlanOC = pPrivate->arrCurveParmas[pPrivate->iParmasWriteIndex].iPlanOC;										
+								}
+								//如果当前的最大速度小于下一线段的最大速度
+								else
+								{
+										pPrivate->arrCurveParmas[pPrivate->iParamsReadIndex].bDecPlan = true;
+										pPrivate->arrCurveParmas[pPrivate->iParamsReadIndex].iPlanOC = pPrivate->arrCurveParmas[pPrivate->iParamsReadIndex].arrAccDivisionTable[ACC_TIME_DIVISION - 1][0];	
+										pPrivate->arrCurveParmas[pPrivate->iParmasWriteIndex].bAccPlan = true;
+										pPrivate->arrCurveParmas[pPrivate->iParmasWriteIndex].iPlanOC = pPrivate->arrCurveParmas[pPrivate->iParamsReadIndex].iPlanOC;									
+								}
+						}
+						else
+						{
+								
+						}
+				}
+				else
 				{
 						
 				}
+				pPrivate->iParmasWriteIndex = (pPrivate->iParmasWriteIndex + 1) % CURVE_BUFFER_SIZE;
+				pPrivate->iParmasBufferLen++;
+				
 				DEBUG_LOG("\r\nDBG Plan Buffer len %d", pPrivate->iParmasBufferLen)
 				//HAL_TIM_OC_Start_IT (&pPrivate->hTIM, TIM_CHANNEL_1);
 //				HAL_TIM_OC_Start_IT (&htim2, TIM_CHANNEL_1);
@@ -752,7 +818,7 @@ void StepperControlInit(StepperControl *pStepper_t, StepperParams *pParams_t)
 		pStepper_t->m_pStepperMove = StepperMove;
 		pStepper_t->m_pThisPrivate = pPrivate;
 		pStepper_t->m_pIsStepperStop = IsStepperStop;
-		pStepper_t->m_pIsDirectionReverse = IsDirectionReverse;
+		pStepper_t->m_pIsNextDirectionReverse = IsNextDirectionReverse;
 		
 		DEBUG_LOG("\r\nstepper init success")
 }

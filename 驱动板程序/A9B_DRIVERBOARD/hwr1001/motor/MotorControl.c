@@ -36,6 +36,7 @@ typedef struct structMotorList
 		int32_t iPulseLocation;
 		float fCoordLocation;
 		float fPlanTarget;
+		float fCurrentMoveDist;
 		bool bDirForward;
 		bool bFindZeroLimit;
 		//用于快速电机操作
@@ -357,6 +358,7 @@ void MotorIntHandler(PRIVATE_MEMBER_TYPE *pPrivate, TIM_HandleTypeDef *hTIM)
 					{
 							if(Motor_t->m_pLimitTouch(Motor_t->pLimitsList, eZero))
 							{
+									DEBUG_LOG("\r\nDBG 0 Limit touch")
 									pStepper_t->m_pStepperStop(pStepper_t->m_pThisPrivate);
 									return;
 							}
@@ -1030,12 +1032,13 @@ static void ExeMotorHome(PRIVATE_MEMBER_TYPE *pPrivate, MotorList *pMotorNode, M
 					//停止,修改位置,Home完成
 					IncEncoder_t->m_pSetEncoderValuef(IncEncoder_t->m_pThisPrivate, 0);
 					pMotorNode->fCoordLocation = 0;	
-					pMotorNode->bHomed = true;
+					
 					pMotorNode->bFindZeroLimit = false;
 					//SetPositionEnforce(Stepper_t->m_pThisPrivate, 0);
 					*eCmdType = HOME;												
 					eHomeStep = eSET_HOME_PARAMS0;												
 					DEBUG_LOG("\r\nDBG Home Complete")
+					pMotorNode->bHomed = true;
 					break;
 				default:
 					break;										
@@ -1057,7 +1060,7 @@ static void ExeMotorMove(MotorList *pMotorNode, MoveNodeParams Params_t, CmdData
 		static uint8_t iWriteIndex = 0;
 		static uint8_t iBufferLen = 0;
 		static float fLastTarget = 0;
-	
+		bool bDirForward;
 		Stepper_t = (StepperControl *)pMotorNode->pMotor_t;
 		IncEncoder_t = (IncEncoderControl *)pMotorNode->pEncoder_t;
 	
@@ -1069,6 +1072,7 @@ static void ExeMotorMove(MotorList *pMotorNode, MoveNodeParams Params_t, CmdData
 		
 		if(fabs(*Params_t.p_fTargetPos - fLastTarget) > 0.1)
 		{
+				bDirForward = (*Params_t.p_fTargetPos > fLastTarget) ? true : false;
 				arrTarget[iWriteIndex] = *Params_t.p_fTargetPos;
 				iWriteIndex = (iWriteIndex + 1) % 8;
 				iBufferLen++;
@@ -1086,6 +1090,7 @@ static void ExeMotorMove(MotorList *pMotorNode, MoveNodeParams Params_t, CmdData
 					//DEBUG_LOG("\r\nDBG buffer len %d", iBufferLen)
 					IncEncoder_t->m_pSetEncoderTarget(IncEncoder_t->m_pThisPrivate, arrTarget[iReadIndex]);
 					pMotorNode->bFindZeroLimit = false;
+					pMotorNode->bDirForward = bDirForward;
 					Stepper_t->m_pStepperMove(Stepper_t->m_pThisPrivate);
 					eMoveStep = eWAIT_ARRIVE;
 				case eWAIT_ARRIVE:
@@ -1101,8 +1106,7 @@ static void ExeMotorMove(MotorList *pMotorNode, MoveNodeParams Params_t, CmdData
 							break;
 					}
 				case eARRIVE:
-						*eCmdType = MOVE;
-						iReadIndex = (iReadIndex + 1) % 8;
+						*eCmdType = MOVE;						
 						iBufferLen--;
 				
 						if(0 == iBufferLen)
@@ -1114,7 +1118,7 @@ static void ExeMotorMove(MotorList *pMotorNode, MoveNodeParams Params_t, CmdData
 						}
 						else
 						{
-								if(Stepper_t->m_pIsDirectionReverse)
+								if(Stepper_t->m_pIsNextDirectionReverse(Stepper_t->m_pThisPrivate))
 								{
 										DEBUG_LOG("\r\nDBG dir rev")
 										eMoveStep = eWAIT_STOP;
@@ -1124,10 +1128,12 @@ static void ExeMotorMove(MotorList *pMotorNode, MoveNodeParams Params_t, CmdData
 										eMoveStep = eSET_PARAMS;
 								}
 						}
-					break;
+						iReadIndex = (iReadIndex + 1) % 8;
+						break;
 				case eWAIT_STOP:
 					if(Stepper_t->m_pIsStepperStop(Stepper_t->m_pThisPrivate))
 					{
+							DEBUG_LOG("\r\nDBG wait stop")
 							eMoveStep = eSET_PARAMS;
 					}
 					else
@@ -1210,6 +1216,15 @@ static bool MotorMovePlan(MotorList *pMotorNode, MoveNodeParams Params_t)
 
 		fMoveDist = *Params_t.p_fTargetPos - pMotorNode->fPlanTarget;
 		
+//		if(fMoveDist > 0)
+//		{
+//				pMotorNode->bDirForward = true;
+//		}
+//		else
+//		{
+//				pMotorNode->bDirForward = false;
+//		}
+		pMotorNode->fCurrentMoveDist = fMoveDist;
 		if(Stepper_t->m_pStepperPrepare(Stepper_t->m_pThisPrivate, fMoveDist, *Params_t.p_fSpeed))
 		{
 				pMotorNode->fPlanTarget = *Params_t.p_fTargetPos;
@@ -1247,7 +1262,7 @@ static void ExeMotorControl(PRIVATE_MEMBER_TYPE *pPrivate, CmdDataObj *eCmdType)
 							
 				if(*Params_t.p_bHome)
 				{
-						DEBUG_LOG("\r\nhome cmd")		
+						//DEBUG_LOG("\r\nhome cmd")		
 						//如果当前没有运动且是Home指令, 将运动状态设置为Home
 						if(eNoAction == eCurrentExeType)
 						{
@@ -1259,20 +1274,23 @@ static void ExeMotorControl(PRIVATE_MEMBER_TYPE *pPrivate, CmdDataObj *eCmdType)
 				}
 				else
 				{
-						//不是Home指令, 进行速度规划
-						if(MotorMovePlan(pMotorNode, Params_t))
+						if(pMotorNode->bHomed)
 						{
-								DEBUG_LOG("\r\nmove cmd")	
-								//如果新的运动点加入规划成功则刷新读索引
-								FreshNodeBufferReadIndex(pPrivate_t->pMoveNodeList);
-								ParamsCopy_t = Params_t;
-						}
-						
-						//如果当前没有运动, 将运动状态设置为运动
-						if(eNoAction == eCurrentExeType)
-						{
-								eCurrentExeType = eMotorMove;
+								//不是Home指令, 进行速度规划
+								if(MotorMovePlan(pMotorNode, Params_t))
+								{
+										//DEBUG_LOG("\r\nmove cmd")	
+										//如果新的运动点加入规划成功则刷新读索引
+										FreshNodeBufferReadIndex(pPrivate_t->pMoveNodeList);
+										ParamsCopy_t = Params_t;
+								}
 								
+								//如果当前没有运动, 将运动状态设置为运动
+								if(eNoAction == eCurrentExeType)
+								{
+										eCurrentExeType = eMotorMove;
+										
+								}
 						}
 				}
 		}

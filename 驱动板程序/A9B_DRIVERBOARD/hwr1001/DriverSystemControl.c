@@ -307,7 +307,7 @@ void CommandFromHostHandler(const uint8_t *pRawData, const uint8_t iDataLen)
 		uint32_t iDistRaw;
 		uint32_t iSpeedRaw;
 		uint8_t iMotorID;
-		uint32_t iLastTarget;
+		static uint32_t iLastTarget;
 //		DEBUG_LOG("\r\nDBG %d", iDataLen)
 		switch((CmdDataObj)pRawData[0])
 		{
@@ -320,6 +320,7 @@ void CommandFromHostHandler(const uint8_t *pRawData, const uint8_t iDataLen)
 				iMotorID = 0;
 				if(iLastTarget == iDistRaw)
 				{
+						DEBUG_LOG("\r\nDBG same move data")
 						break;
 				}
 				if(4 == pRawData[1] && 6 == iDataLen)
