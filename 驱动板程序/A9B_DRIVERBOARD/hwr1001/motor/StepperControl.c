@@ -69,7 +69,7 @@ typedef struct
 		bool bAccPlan;
 		bool bDecPlan;
 		float fMaxSpeed;
-		uint16_t iPlanOC;	
+		uint16_t iPlanOC;			
 }CurveParmas;
 
 typedef struct
@@ -87,6 +87,7 @@ typedef struct
 		void *pDriver;
 		CurveParmas arrCurveParmas[CURVE_BUFFER_SIZE];
 		bool bStop;
+		bool bCheckDir;
 //		uint32_t iAccDist;
 //		uint32_t iPlatDist;
 //		uint32_t iDecDist;
@@ -102,7 +103,7 @@ typedef struct
 //		bool bPlateauAll;
 		uint8_t iParamsReadIndex;
 		uint8_t iParmasWriteIndex;
-		uint8_t iParmasBufferLen;
+		volatile uint8_t iParmasBufferLen;
 //		int16_t iPlatValueOC;
 }PrivateBlock;
 
@@ -119,6 +120,7 @@ static bool IsStepperStop(PRIVATE_MEMBER_TYPE *pPrivate)
 		return (pPrivate_t->bStop);
 }
 
+
 static bool IsNextDirectionReverse(PRIVATE_MEMBER_TYPE *pPrivate)
 {
 		PrivateBlock *pPrivate_t = (PrivateBlock *)pPrivate;
@@ -132,10 +134,14 @@ static bool IsNextDirectionReverse(PRIVATE_MEMBER_TYPE *pPrivate)
 		}		
 		
 //		DEBUG_LOG("\r\nDBG l %d,c %d", bDirForwardLast, pPrivate_t->arrCurveParmas[pPrivate_t->iParamsReadIndex].bDirForward)
+
 		bDirForwardCurrent = pPrivate_t->arrCurveParmas[pPrivate_t->iParamsReadIndex].bDirForward;
 		bDirForwardNext = pPrivate_t->arrCurveParmas[(pPrivate_t->iParamsReadIndex + 1) % CURVE_BUFFER_SIZE].bDirForward;
+
+		pPrivate_t->bCheckDir = true;
 		if(bDirForwardCurrent != bDirForwardNext)
 		{
+				
 				return true;
 		}
 		else
@@ -165,10 +171,8 @@ void StepperStop(PRIVATE_MEMBER_TYPE *pPrivate)
 		{				
 				DEBUG_LOG("\r\nDBG Plan Buffer len- %d", pPrivate_t->iParmasBufferLen)
 				bDirForwardLast = pPrivate_t->arrCurveParmas[pPrivate_t->iParamsReadIndex].bDirForward;
-
 				pPrivate_t->iParamsReadIndex = (pPrivate_t->iParamsReadIndex + 1) % CURVE_BUFFER_SIZE;				
 				pPrivate_t->iParmasBufferLen--;
-
 		}
 		
 		if(0 == pPrivate_t->iParmasBufferLen)
@@ -178,6 +182,7 @@ void StepperStop(PRIVATE_MEMBER_TYPE *pPrivate)
 				HAL_TIM_OC_Stop_IT (&htim2, TIM_CHANNEL_1);	
 				pPrivate_t->bStop = true;
 				bWaitNextPointSet = false;
+				pPrivate_t->bCheckDir = false;
 				return;
 		}
 //		DEBUG_LOG("\r\nDBG lst dir %d", bDirForwardLast)
@@ -630,9 +635,16 @@ bool StepperPrepare(PRIVATE_MEMBER_TYPE *pThisPrivate, float fDistance, float fS
 				return false;
 		}			
 		
-		//DEBUG_LOG("\r\nDBG pbuffer len %d", pPrivate->iParmasBufferLen)
+//		DEBUG_LOG("\r\nDBG pre buffer len %d", pPrivate->iParmasBufferLen)
 		if(pPrivate->iParmasBufferLen < CURVE_BUFFER_SIZE)
 		{
+				if(pPrivate->iParmasBufferLen > 0)
+				{
+						if(!pPrivate->bCheckDir)
+						{
+								return false;
+						}
+				}
 				//如果是新点则不需要进行速度规划
 				//如果新的位置点与当前位置点方向不同则不需要速度规划
 				DEBUG_LOG("\r\nStepper Prepare")

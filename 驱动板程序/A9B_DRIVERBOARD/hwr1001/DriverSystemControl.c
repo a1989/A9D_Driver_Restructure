@@ -329,6 +329,10 @@ void CommandFromHostHandler(const uint8_t *pRawData, const uint8_t iDataLen)
 						{
 								break;
 						}
+//						if(iSpeedRaw < 8)
+//						{
+//								iSpeedRaw = 8;
+//						}
 						printf("\r\nDBG dist %d,spd %d", iDistRaw, iSpeedRaw);
 						DEBUG_LOG("\r\nDBG CMD Move %d, %d", iDistRaw, iSpeedRaw)
 

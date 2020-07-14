@@ -47,6 +47,7 @@ typedef struct structMotorList
 		bool (*m_pTargetArrived)(void *pEncoder_t);		
 		bool bHomed;
 		bool bGoingHome;
+		bool bTargetChange;
 }MotorList;
 
 //每个运动单节点的参数
@@ -374,9 +375,13 @@ void MotorIntHandler(PRIVATE_MEMBER_TYPE *pPrivate, TIM_HandleTypeDef *hTIM)
 										
 					if(!Motor_t->bFindZeroLimit && Motor_t->m_pTargetArrived(pIncEncoder_t->m_pThisPrivate))
 					{
-//							DEBUG_LOG("\r\nDBG Int target arrived")
-							//如果运动参数的buffer size为0则停止运动
-							pStepper_t->m_pStepperStop(pStepper_t->m_pThisPrivate);
+							if(Motor_t->bTargetChange)
+							{
+									DEBUG_LOG("\r\nDBG Int target arrived")
+									//如果运动参数的buffer size为0则停止运动
+									pStepper_t->m_pStepperStop(pStepper_t->m_pThisPrivate);
+									Motor_t->bTargetChange = false;
+							}
 					}
 					else
 					{
@@ -950,6 +955,7 @@ static void ExeMotorHome(PRIVATE_MEMBER_TYPE *pPrivate, MotorList *pMotorNode, M
 								Stepper_t->m_pStepperBackward(Stepper_t->m_pThisPrivate);
 								//步进电机准备运动
 								Stepper_t->m_pStepperPrepare(Stepper_t->m_pThisPrivate, MAX_LENGTH * NEGTIVE_DIRECTION, *Params_t.p_fSpeed);
+								pMotorNode->bTargetChange = true;
 								Stepper_t->m_pStepperMove(Stepper_t->m_pThisPrivate);
 								break;
 							default:
@@ -984,6 +990,7 @@ static void ExeMotorHome(PRIVATE_MEMBER_TYPE *pPrivate, MotorList *pMotorNode, M
 					Stepper_t->m_pStepperForward(Stepper_t->m_pThisPrivate);
 					IncEncoder_t->m_pSetEncoderTarget(IncEncoder_t->m_pThisPrivate, 10);
 					Stepper_t->m_pStepperPrepare(Stepper_t->m_pThisPrivate, 10, 5);
+					pMotorNode->bTargetChange = true;
 					Stepper_t->m_pStepperMove(Stepper_t->m_pThisPrivate);
 					eHomeStep = eWAIT_REVERSE_ARRIVED;
 					//break;
@@ -1007,6 +1014,7 @@ static void ExeMotorHome(PRIVATE_MEMBER_TYPE *pPrivate, MotorList *pMotorNode, M
 					//pMotorNode->iPulseLocation = pMotorNode->iPulseLocation - MAX_LENGTH * NEGTIVE_DIRECTION * 
 					Stepper_t->m_pStepperBackward(Stepper_t->m_pThisPrivate);
 					Stepper_t->m_pStepperPrepare(Stepper_t->m_pThisPrivate, MAX_LENGTH * NEGTIVE_DIRECTION, 3);
+					pMotorNode->bTargetChange = true;
 					Stepper_t->m_pStepperMove(Stepper_t->m_pThisPrivate);
 					//Stepper_t->m_pStepperPrepare(Stepper_t->m_pThisPrivate, MAX_LENGTH * NEGTIVE_DIRECTION, 2);
 					eHomeStep = eCHECK_LIMIT_SECOND;
@@ -1091,9 +1099,10 @@ static void ExeMotorMove(MotorList *pMotorNode, MoveNodeParams Params_t, CmdData
 					IncEncoder_t->m_pSetEncoderTarget(IncEncoder_t->m_pThisPrivate, arrTarget[iReadIndex]);
 					pMotorNode->bFindZeroLimit = false;
 					pMotorNode->bDirForward = bDirForward;
+					pMotorNode->bTargetChange = true;
 					Stepper_t->m_pStepperMove(Stepper_t->m_pThisPrivate);
 					eMoveStep = eWAIT_ARRIVE;
-				case eWAIT_ARRIVE:
+				case eWAIT_ARRIVE:					
 //					if(IncEncoder_t->m_pIncEncoderTargetArrived(IncEncoder_t->m_pThisPrivate))
 					if(IncEncoder_t->m_pIsTargetArrived(IncEncoder_t->m_pThisPrivate))
 					{
@@ -1288,8 +1297,7 @@ static void ExeMotorControl(PRIVATE_MEMBER_TYPE *pPrivate, CmdDataObj *eCmdType)
 								//如果当前没有运动, 将运动状态设置为运动
 								if(eNoAction == eCurrentExeType)
 								{
-										eCurrentExeType = eMotorMove;
-										
+										eCurrentExeType = eMotorMove;										
 								}
 						}
 				}

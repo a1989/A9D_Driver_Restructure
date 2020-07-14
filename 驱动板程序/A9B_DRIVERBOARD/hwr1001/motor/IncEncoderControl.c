@@ -303,7 +303,7 @@ bool IncEncoderTargetArrived(PRIVATE_MEMBER_TYPE *m_pThisPrivate)
 		{
 				if(pPrivate_t->iCurrentCount >= pPrivate_t->iTargetCount)
 				{			
-						DEBUG_LOG("\r\nDBG inc Arrived+")
+						DEBUG_LOG("\r\nDBG inc Arrived+,%d", pPrivate_t->iCurrentCount)
 						pPrivate_t->bArrived = true;
 						return true;						
 				}
