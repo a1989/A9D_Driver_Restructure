@@ -360,6 +360,7 @@ void MotorIntHandler(PRIVATE_MEMBER_TYPE *pPrivate, TIM_HandleTypeDef *hTIM)
 							if(Motor_t->m_pLimitTouch(Motor_t->pLimitsList, eZero))
 							{
 									DEBUG_LOG("\r\nDBG 0 Limit touch")
+									
 									pStepper_t->m_pStepperStop(pStepper_t->m_pThisPrivate);
 									return;
 							}
@@ -957,6 +958,7 @@ static void ExeMotorHome(PRIVATE_MEMBER_TYPE *pPrivate, MotorList *pMotorNode, M
 								Stepper_t->m_pStepperPrepare(Stepper_t->m_pThisPrivate, MAX_LENGTH * NEGTIVE_DIRECTION, *Params_t.p_fSpeed);
 								pMotorNode->bTargetChange = true;
 								Stepper_t->m_pStepperMove(Stepper_t->m_pThisPrivate);
+//								printf("\r\nstep1");
 								break;
 							default:
 								break;
@@ -973,8 +975,14 @@ static void ExeMotorHome(PRIVATE_MEMBER_TYPE *pPrivate, MotorList *pMotorNode, M
 					if(bLimitStatu)
 					{
 							DEBUG_LOG("\r\nDBG zero limit touch")
+							
 							IncEncoder_t->m_pSetEncoderValuef(IncEncoder_t->m_pThisPrivate, 0);
+							while(!Stepper_t->m_pIsStepperStop(Stepper_t->m_pThisPrivate))
+							{
+									Delay_ms(10);
+							}
 							eHomeStep = eMOVE_REVERSE_DIR;		
+//							printf("\r\nstep2");
 							Delay_ms(10);
 					}
 					else
@@ -984,6 +992,10 @@ static void ExeMotorHome(PRIVATE_MEMBER_TYPE *pPrivate, MotorList *pMotorNode, M
 					}
 				case eMOVE_REVERSE_DIR:	
 					//反方向走10mm
+//					if(!Stepper_t->m_pIsStepperStop(Stepper_t->m_pThisPrivate))
+//					{
+//							break;
+//					}
 					DEBUG_LOG("\r\nDBG leave zero limit")
 					pMotorNode->bDirForward = true;
 					pMotorNode->bFindZeroLimit = false;
@@ -993,6 +1005,7 @@ static void ExeMotorHome(PRIVATE_MEMBER_TYPE *pPrivate, MotorList *pMotorNode, M
 					pMotorNode->bTargetChange = true;
 					Stepper_t->m_pStepperMove(Stepper_t->m_pThisPrivate);
 					eHomeStep = eWAIT_REVERSE_ARRIVED;
+//					printf("\r\nstep3");
 					//break;
 				case eWAIT_REVERSE_ARRIVED:
 					//等待10mm走完
@@ -1000,6 +1013,7 @@ static void ExeMotorHome(PRIVATE_MEMBER_TYPE *pPrivate, MotorList *pMotorNode, M
 					if(IncEncoder_t->m_pIsTargetArrived(IncEncoder_t->m_pThisPrivate))
 					{
 							eHomeStep = eSET_HOME_PARAMS1;
+							
 					}
 					else
 					{
@@ -1018,6 +1032,7 @@ static void ExeMotorHome(PRIVATE_MEMBER_TYPE *pPrivate, MotorList *pMotorNode, M
 					Stepper_t->m_pStepperMove(Stepper_t->m_pThisPrivate);
 					//Stepper_t->m_pStepperPrepare(Stepper_t->m_pThisPrivate, MAX_LENGTH * NEGTIVE_DIRECTION, 2);
 					eHomeStep = eCHECK_LIMIT_SECOND;
+//					printf("\r\nstep4");
 				case eCHECK_LIMIT_SECOND:
 					//检查到二次接触限位开关,在中断里检测												
 					if(!ReadLimitByID(pPrivate, *(uint8_t *)Params_t.p_iID, eZero, &bLimitStatu))
@@ -1078,7 +1093,7 @@ static void ExeMotorMove(MotorList *pMotorNode, MoveNodeParams Params_t, CmdData
 				return;
 		}	
 		
-		if(fabs(*Params_t.p_fTargetPos - fLastTarget) > 0.1)
+		if(fabs(*Params_t.p_fTargetPos - fLastTarget) > 0.01)
 		{
 				bDirForward = (*Params_t.p_fTargetPos > fLastTarget) ? true : false;
 				arrTarget[iWriteIndex] = *Params_t.p_fTargetPos;

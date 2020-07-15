@@ -449,12 +449,14 @@ bool DRV8711_Forward(PRIVATE_MEMBER_TYPE *pThisPrivate)
 		if(pPrivate->bHighLevelPositiveDir)
 		{
 				DEBUG_LOG("\r\nDBG dir io set")
+//				printf("\r\nf1dir io set");
 				SET_PIN(pPrivate->PinConfig_t.DirPin.GPIO_Port, pPrivate->PinConfig_t.DirPin.GPIO_Pin);
 //				HAL_GPIO_WritePin (GPIOA, GPIO_PIN_1, GPIO_PIN_SET);
 		}
 		else
 		{
 				DEBUG_LOG("\r\nDBG dir io reset")
+//				printf("\r\nf2dir io reset");
 				RESET_PIN(pPrivate->PinConfig_t.DirPin.GPIO_Port, pPrivate->PinConfig_t.DirPin.GPIO_Pin);
 //				HAL_GPIO_WritePin (GPIOA, GPIO_PIN_1, GPIO_PIN_RESET);
 		}
@@ -472,11 +474,13 @@ bool DRV8711_Backward(PRIVATE_MEMBER_TYPE *pThisPrivate)
 		if(pPrivate->bHighLevelPositiveDir)
 		{
 				DEBUG_LOG("\r\nDBG dir io reset")
+//				printf("\r\nb1dir io reset");
 				RESET_PIN(pPrivate->PinConfig_t.DirPin.GPIO_Port, pPrivate->PinConfig_t.DirPin.GPIO_Pin);
 		}
 		else
 		{
 				DEBUG_LOG("\r\nDBG dir io set")
+//				printf("\r\nb2dir io set");
 				SET_PIN(pPrivate->PinConfig_t.DirPin.GPIO_Port, pPrivate->PinConfig_t.DirPin.GPIO_Pin);
 		}
 }
