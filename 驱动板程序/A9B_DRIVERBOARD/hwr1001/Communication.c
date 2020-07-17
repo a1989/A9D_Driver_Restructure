@@ -18,12 +18,16 @@ typedef struct
 		uint8_t iDataLen;
 }StructDataBuffer;
 
+static StructDataBuffer g_arrRecvBuffer[RECV_BUFFER_SIZE] = {0};
+static StructDataBuffer g_arrSendBuffer[SEND_BUFFER_SIZE] = {0};
+
 typedef struct
 {
 		uint8_t iBufferLen;
 		uint8_t iWriteIndex;
 		uint8_t iReadIndex;
-		StructDataBuffer iRecvBuffer_t[RECV_BUFFER_SIZE];
+//		StructDataBuffer iRecvBuffer_t[RECV_BUFFER_SIZE];
+		StructDataBuffer *iRecvBuffer_t;
 		char *strType;
 }StructRecvHandler;
 
@@ -32,7 +36,8 @@ typedef struct
 		uint8_t iBufferLen;
 		uint8_t iWriteIndex;
 		uint8_t iReadIndex;
-		StructDataBuffer iSendBuffer_t[SEND_BUFFER_SIZE];
+//		StructDataBuffer iSendBuffer_t[SEND_BUFFER_SIZE];
+		StructDataBuffer *iSendBuffer_t;
 		char *strType;
 }StructSendHandler;
 
@@ -111,6 +116,7 @@ StructRecvHandler *MallocRecv_t(void)
 				return false;							
 		}
 		
+		pRecv_t->iRecvBuffer_t = g_arrRecvBuffer;
 		pRecv_t->iBufferLen = 0;
 		pRecv_t->iReadIndex = 0;
 		pRecv_t->iWriteIndex = 0;
@@ -128,6 +134,7 @@ StructSendHandler *MallocSend_t(void)
 				return false;							
 		}
 		
+		pSend_t->iSendBuffer_t = g_arrSendBuffer;
 		pSend_t->iBufferLen = 0;
 		pSend_t->iReadIndex = 0;
 		pSend_t->iWriteIndex = 0;

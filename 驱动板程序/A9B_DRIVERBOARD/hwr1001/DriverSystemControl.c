@@ -308,6 +308,7 @@ void CommandFromHostHandler(const uint8_t *pRawData, const uint8_t iDataLen)
 		uint32_t iSpeedRaw;
 		uint8_t iMotorID;
 		static uint32_t iLastTarget;
+		static CmdDataObj eLastCmd = DO_NOTHING;
 //		DEBUG_LOG("\r\nDBG %d", iDataLen)
 		switch((CmdDataObj)pRawData[0])
 		{
@@ -320,13 +321,18 @@ void CommandFromHostHandler(const uint8_t *pRawData, const uint8_t iDataLen)
 				iMotorID = 0;
 				if(iLastTarget == iDistRaw)
 				{
-						DEBUG_LOG("\r\nDBG same move data")
-						break;
+						if(eLastCmd == MOVE)
+						{
+								DEBUG_LOG("\r\nDBG same move data")
+								eLastCmd = MOVE;
+								break;
+						}
 				}
 				if(4 == pRawData[1] && 6 == iDataLen)
 				{
 						if(0 == iSpeedRaw)
 						{
+								eLastCmd = MOVE;
 								break;
 						}
 //						if(iSpeedRaw < 8)
@@ -339,6 +345,7 @@ void CommandFromHostHandler(const uint8_t *pRawData, const uint8_t iDataLen)
 						g_MotionBlock_t.m_pSetMotorMoveData(g_MotionBlock_t.m_pThisPrivate, &iMotorID, &iDistRaw, &iSpeedRaw);
 						iLastTarget = iDistRaw;
 				}
+				eLastCmd = MOVE;
 				break;
 			case HOME:
 				DEBUG_LOG("\r\nDBG CMD Home")
@@ -353,6 +360,7 @@ void CommandFromHostHandler(const uint8_t *pRawData, const uint8_t iDataLen)
 								//printf("\r\nlen %d", iDataLen);
 								printf("\r\nHome Wrong Data");
 						}
+						eLastCmd = HOME;
 				#endif
 				break;
 			case BOARD_RESET:
