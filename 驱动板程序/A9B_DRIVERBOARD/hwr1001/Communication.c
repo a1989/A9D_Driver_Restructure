@@ -70,7 +70,7 @@ static void PushRecvBuffer(StructRecvHandler *Block_t, uint8_t *pData, uint8_t i
 //	
 //		DEBUG_LOG("\r\n")
 		
-		if(Block_t->iBufferLen < RECV_BUFFER_SIZE - 1)
+		if(Block_t->iBufferLen < RECV_BUFFER_SIZE)
 		{				
 				memcpy(Block_t->iRecvBuffer_t[Block_t->iWriteIndex].iBuffer, pData, iDataLen);
 				Block_t->iRecvBuffer_t[Block_t->iWriteIndex].iDataLen = iDataLen;
@@ -91,7 +91,7 @@ static void PushSendBuffer(StructSendHandler *Block_t, uint8_t *pData, uint8_t i
 {
 		DEBUG_LOG("\r\nsend buffer start push data:length:%d", iDataLen)
 		
-		if(Block_t->iBufferLen < SEND_BUFFER_SIZE - 1)
+		if(Block_t->iBufferLen < SEND_BUFFER_SIZE)
 		{
 				memcpy(Block_t->iSendBuffer_t[Block_t->iWriteIndex].iBuffer, pData, iDataLen);
 				Block_t->iSendBuffer_t[Block_t->iWriteIndex].iDataLen = iDataLen;

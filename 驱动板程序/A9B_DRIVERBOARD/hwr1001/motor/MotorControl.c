@@ -427,7 +427,7 @@ void MotorIntHandler(PRIVATE_MEMBER_TYPE *pPrivate, TIM_HandleTypeDef *hTIM)
 
 void PushMoveData(MoveNodeList *Node_t, MoveNodeParams *Params_t)
 {
-		if(Node_t->iBufferLen <= MOVE_NODE_NUM)
+		if(Node_t->iBufferLen < MOVE_NODE_NUM)
 		{
 				DEBUG_LOG("\r\nDBG Push Move Data")
 
@@ -1144,6 +1144,7 @@ static void ExeMotorMove(MotorList *pMotorNode, MoveNodeParams Params_t, CmdData
 					if(0 == iBufferLen)
 					{
 							DEBUG_LOG("\r\nDBG buffer 0")
+							*bStop = true;
 							break;
 					}
 					DEBUG_LOG("\r\nDBG start move")
@@ -1176,9 +1177,12 @@ static void ExeMotorMove(MotorList *pMotorNode, MoveNodeParams Params_t, CmdData
 							}
 					}
 				case eARRIVE:
-						*eCmdType = MOVE;						
-						iBufferLen--;
-				
+						*eCmdType = MOVE;		
+						if(iBufferLen > 0)
+						{
+								iBufferLen--;
+						}
+						
 						if(0 == iBufferLen)
 						{
 								//如果buffer中没有点位数据就需要设置为停止状态
@@ -1294,6 +1298,11 @@ static bool MotorMovePlan(MotorList *pMotorNode, MoveNodeParams Params_t)
 //		{
 //				pMotorNode->bDirForward = false;
 //		}
+		if(fabs(*Params_t.p_fTargetPos - pMotorNode->fPlanTarget) < 0.01)
+		{
+				pMotorNode->fPlanTarget = *Params_t.p_fTargetPos;
+				return true;				
+		}
 		pMotorNode->fCurrentMoveDist = fMoveDist;
 		if(Stepper_t->m_pStepperPrepare(Stepper_t->m_pThisPrivate, fMoveDist, *Params_t.p_fSpeed))
 		{
